@@ -1,3 +1,6 @@
 [submodule "etl"]
 	path = etl
 	url = git@github.com:ETLCPP/etl.git
+[submodule "tivaware-cmake"]
+	path = tivaware-cmake
+	url = git@github.com:akowalew/tivaware-cmake.git
