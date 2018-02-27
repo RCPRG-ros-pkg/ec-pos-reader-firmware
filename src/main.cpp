@@ -16,6 +16,8 @@
 
 #include "tivaware/utils/uartstdio.h"
 
+#include "binary.h" // ETLCPP
+
 int main()
 {
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
@@ -28,7 +30,7 @@ int main()
 
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
 	MAP_SSIConfigSetExpClk(SSI0_BASE, MAP_SysCtlClockGet(), SSI_FRF_TI,
-		SSI_MODE_MASTER, 10000, 13);
+		SSI_MODE_MASTER, 1500000, 13);
 
 	SSIEnable(SSI0_BASE);
 
@@ -37,8 +39,9 @@ int main()
 		SSIDataPut(SSI0_BASE, 0);
 		std::uint32_t data;
 		SSIDataGet(SSI0_BASE, &data);
-		data = ((data) & 8191);
-		UARTprintf("Received data: %x %x\n", data & 0xFF, data & 0xFF00);
+		data = (data & 8191);
+		data = etl::gray_to_binary(data);
+		UARTprintf("Received data: %d\n", (int)data);
 	}
 
     return 0;
