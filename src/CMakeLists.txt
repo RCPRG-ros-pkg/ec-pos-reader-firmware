@@ -39,6 +39,7 @@ add_executable(${EXECUTABLE_NAME}
 target_link_libraries(${EXECUTABLE_NAME}
     tivaware_driverlib
     tivaware_utils
+    etl
 )
 
 # Add dependency to the program of linker script during linking stage
