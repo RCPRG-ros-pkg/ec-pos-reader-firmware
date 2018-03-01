@@ -124,6 +124,7 @@ SSIGetBitRate(std::uint32_t baseAddress)
 {
 	static_cast<void>(baseAddress);
 	assert(false); // not implemented
+	return 0;
 }
 
 /**
