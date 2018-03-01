@@ -4,3 +4,6 @@
 [submodule "tivaware-cmake"]
 	path = tivaware-cmake
 	url = git@github.com:akowalew/tivaware-cmake.git
+[submodule "embxx"]
+	path = embxx
+	url = git@github.com:arobenko/embxx.git
