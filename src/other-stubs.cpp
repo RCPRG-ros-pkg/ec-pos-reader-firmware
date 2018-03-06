@@ -36,7 +36,7 @@ extern "C"
 void __assert_func(const char* filename, int lineno,
 	const char* func, const char* expression)
 {
-	UARTprintf("Assertion failed: %s, file %s, line %d, function: %s",
+	UARTprintf("Assertion failed: %s, file %s, line %d, function: %s\n",
 		expression, filename, lineno, func);
 
 	abort();
