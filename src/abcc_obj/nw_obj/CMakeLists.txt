@@ -1,0 +1,12 @@
+add_library(abcc_obj_nw_obj
+	ccl.c
+	cfn.c
+	cop.c
+	dev.c
+	dpv1.c
+	ect.c
+	eip.c
+	epl.c
+	mod.c
+	prt.c
+)
