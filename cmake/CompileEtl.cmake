@@ -12,7 +12,11 @@ message(STATUS "etl_SOURCES=${etl_SOURCES}")
 # Specify compile flags without exceptions and any unwind code
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
 -Wall \
--Wno-error\
+-Wno-error \
+-Wno-unused-parameter \
+-Wno-old-style-declaration \
+-Wno-shift-negative-value \
+-Wno-sign-compare \
 -Wextra \
 -ffunction-sections \
 -fdata-sections \

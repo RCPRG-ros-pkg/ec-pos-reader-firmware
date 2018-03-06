@@ -4,6 +4,10 @@
 
 set(EXECUTABLE_NAME main)
 
+add_subdirectory(abcc_adapt)
+add_subdirectory(abcc_drv)
+add_subdirectory(abcc_obj)
+add_subdirectory(appl)
 add_subdirectory(device)
 add_subdirectory(hohner)
 
@@ -20,6 +24,7 @@ target_link_libraries(${EXECUTABLE_NAME}
     tivaware_utils
     etl
 
+    appl
     device
     hohner
 )
