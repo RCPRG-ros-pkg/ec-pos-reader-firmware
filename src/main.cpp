@@ -8,22 +8,63 @@
 #include <cstdint>
 
 #include "tivaware/utils/uartstdio.h"
-#include "tivaware/inc/hw_memmap.h"
+#include "tivaware/driverlib/sysctl.h"
+#include "tivaware/driverlib/rom.h"
+#include "tivaware/driverlib/rom_map.h"
 
-#include "device/SSIMasterDevice.hpp"
-#include "hohner/SMRS59.hpp"
+#include "abcc_td.h"
+#include "abcc.h"
+#include "abcc_sys_adapt.h"
+#include "ad_obj.h"
+#include "appl_abcc_handler.h"
+
+int clock;
+
+constexpr auto APPL_TIMER_MS = 1;
+static void DelayMs( UINT32 lDelayMs )
+{
+	SysCtlDelay((clock / 1000) * lDelayMs);
+}
+
+static void Reset( void )
+{
+	UARTprintf("Reset!\n");
+	while(1);
+}
 
 int main()
 {
-	device::SSIMasterDevice ssiMasterDevice(SSI0_BASE);
-	hohner::SMRS59 _smrs59(ssiMasterDevice);
+	clock = MAP_SysCtlClockGet();
 
-	while(1)
+	UARTprintf("Main program started.\n");
+
+	APPL_AbccHandlerStatusType eAbccHandlerStatus = APPL_MODULE_NO_ERROR;
+
+	if( ABCC_HwInit() != ABCC_EC_NO_ERROR )
 	{
-		const auto position = _smrs59.readPosition();
-		UARTprintf("Encoder position: %d\n", position.value());
+		UARTprintf("Error during ABCC_HwInit.\n");
+		while(1);
 	}
 
+	UARTprintf("ABCC hardware initialized. Starting main loop.\n");
+	while( eAbccHandlerStatus == APPL_MODULE_NO_ERROR )
+	{
+		eAbccHandlerStatus = APPL_HandleAbcc();
+
+		ABCC_RunTimerSystem( APPL_TIMER_MS );
+		DelayMs( APPL_TIMER_MS );
+
+		switch( eAbccHandlerStatus )
+		{
+		case APPL_MODULE_RESET:
+			Reset();
+			break;
+		default:
+			break;
+		}
+	}
+
+	while(1);
 	assert(false && "Should not get here!");
     return 0;
 }
