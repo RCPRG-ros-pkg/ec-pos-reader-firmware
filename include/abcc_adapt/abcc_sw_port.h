@@ -79,62 +79,23 @@
 */
 
 #include "tivaware/utils/uartstdio.h"
+#include "tivaware/driverlib/interrupt.h"
 
 #define ABCC_PORT_DebugPrint( args ) (UARTprintf args)
 
+//! Should perform any preparation before EnterCritical and ExitCritical
+//! In this case, does nothing
 #define ABCC_PORT_UseCritical()
 
-#define ABCC_PORT_EnterCritical()
+//! Enters critical section by globally disabling interrupts
+#define ABCC_PORT_EnterCritical() IntMasterDisable()
 
-#define ABCC_PORT_ExitCritical()
+//! Exits critical section by re-enabling interrupts globally
+#define ABCC_PORT_ExitCritical() IntMasterEnable()
 
-#ifdef ABCC_SYS_16_BIT_CHAR
-
-void ABCC_PORT_StrCpyToPackedImpl( void* pxDest, UINT16 iDestOctetOffset,
-                                   const void* pxSrc, UINT16 iNbrOfChars );
-
-void ABCC_PORT_StrCpyToNativeImpl( void* pxDest, const void* pxSrc,
-                                   UINT16 iSrcOctetOffset, UINT16 iNbrOfChars );
-
-void ABCC_PORT_CopyOctetsImpl( void* pxDest, UINT16 iDestOctetOffset,
-                               const void* pxSrc, UINT16 iSrcOctetOffset,
-                               UINT16 iNumOctets );
-
-#define ABCC_PORT_MemCpy( pbDest, pbSource, iNbrOfOctets )                     \
-        memcpy( pbDest, pbSource, ( (iNbrOfOctets) + 1 ) >> 1 );
-
-#define ABCC_PORT_StrCpyToNative( pxDest, pxSrc, iSrcOctetOffset, iNbrOfChars ) \
-        ABCC_PORT_StrCpyToNativeImpl( pxDest, pxSrc, iSrcOctetOffset, iNbrOfChars )
-
-#define ABCC_PORT_StrCpyToPacked( pxDest, iDestOctetOffset, pxSrc, iNbrOfChars ) \
-        ABCC_PORT_StrCpyToPackedImpl( pxDest, iDestOctetOffset, pxSrc, iNbrOfChars )
-
-
-#define ABCC_PORT_CopyOctets( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset,\
-                              iNumOctets )                                     \
-        ABCC_PORT_CopyOctetsImpl( pxDest, iDestOctetOffset, pxSrc,             \
-                                  iSrcOctetOffset, iNumOctets );
-
-#define ABCC_PORT_Copy8( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset )    \
-        ABCC_PORT_CopyOctetsImpl( pxDest, iDestOctetOffset, pxSrc,             \
-                                  iSrcOctetOffset, 1 )
-
-#else
-
-#if ABCC_CFG_PAR_EXT_BUS_ENDIAN_DIFF
-/*
-** Use special memcpy implementation if the external and internal bus has
-** different endianess. The copy must be byte oriented.
-*/
-void* ABCC_PORT_CopyImpl( void *pbDest,
-                          const void *pbSource, int iNbrOfOctets );
-
-#define ABCC_PORT_MemCpy( pbDest, pbSource, iNbrOfOctets )                     \
-   ABCC_PORT_CopyImpl( pbDest, pbSource, iNbrOfOctets );
-#else
+//! Performs low-level memory copy of bytes
 #define ABCC_PORT_MemCpy( pbDest, pbSource, iNbrOfOctets )                     \
    memcpy( pbDest, pbSource, iNbrOfOctets );
-#endif
 
 #define ABCC_PORT_CopyOctets( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset,\
                               iNumOctets )                                     \
@@ -155,17 +116,11 @@ void* ABCC_PORT_CopyImpl( void *pbDest,
 #define ABCC_PORT_Copy8( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset )    \
         ( (UINT8*)(pxDest) )[ iDestOctetOffset ] =                             \
         ( (UINT8*)(pxSrc) )[ iSrcOctetOffset ]
-#endif
 
 #define ABCC_PORT_Copy16( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset )   \
         ABCC_PORT_CopyOctets( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset, 2 )
 
 #define ABCC_PORT_Copy32( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset )   \
         ABCC_PORT_CopyOctets( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset, 4 )
-
-#if( ABCC_CFG_64BIT_ADI_SUPPORT )
-#define ABCC_PORT_Copy64( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset )   \
-        ABCC_PORT_CopyOctets( pxDest, iDestOctetOffset, pxSrc, iSrcOctetOffset, 8 )
-#endif
 
 #endif  /* inclusion lock */
