@@ -8,7 +8,8 @@
 #include <cstdint>
 
 #include "tivaware/utils/uartstdio.h"
-#include "tivaware/driverlib/sysctl.h"
+#include "tivaware/driverlib/interrupt.h"
+#include "tivaware/driverlib/systick.h"
 #include "tivaware/driverlib/rom.h"
 #include "tivaware/driverlib/rom_map.h"
 
@@ -18,46 +19,59 @@
 #include "ad_obj.h"
 #include "appl_abcc_handler.h"
 
-int clock;
+#include <chrono>
 
-constexpr auto APPL_TIMER_MS = 1;
-static void DelayMs( UINT32 lDelayMs )
+#include "common.hpp"
+
+constexpr auto TimerDelayMs = std::chrono::milliseconds(1);
+
+static void sysTickISR()
 {
-	SysCtlDelay((clock / 1000) * lDelayMs);
+	ABCC_RunTimerSystem(TimerDelayMs.count());
 }
 
-static void Reset( void )
+static void setupSysTick()
 {
-	UARTprintf("Reset!\n");
+	UARTprintf("Initializing timer...\n");
+
+	using Period = decltype(TimerDelayMs)::period;
+	constexpr auto SysTickPeriod = ClockHz * TimerDelayMs.count() *
+		Period::num / Period::den;
+
+	MAP_SysTickPeriodSet(SysTickPeriod);
+	SysTickIntRegister(sysTickISR);
+	MAP_SysTickIntEnable();
+	MAP_SysTickEnable();
+}
+
+static void resetModule()
+{
+	UARTprintf("resetModule!\n");
 	while(1);
 }
 
 int main()
 {
-	clock = MAP_SysCtlClockGet();
-
-	UARTprintf("Main program started.\n");
-
-	APPL_AbccHandlerStatusType eAbccHandlerStatus = APPL_MODULE_NO_ERROR;
-
+	UARTprintf("Initializing ABCC hardware...\n");
 	if( ABCC_HwInit() != ABCC_EC_NO_ERROR )
 	{
 		UARTprintf("Error during ABCC_HwInit.\n");
 		while(1);
 	}
 
-	UARTprintf("ABCC hardware initialized. Starting main loop.\n");
+	setupSysTick();
+
+	IntMasterEnable();
+
+	APPL_AbccHandlerStatusType eAbccHandlerStatus = APPL_MODULE_NO_ERROR;
 	while( eAbccHandlerStatus == APPL_MODULE_NO_ERROR )
 	{
 		eAbccHandlerStatus = APPL_HandleAbcc();
 
-		ABCC_RunTimerSystem( APPL_TIMER_MS );
-		DelayMs( APPL_TIMER_MS );
-
 		switch( eAbccHandlerStatus )
 		{
 		case APPL_MODULE_RESET:
-			Reset();
+			resetModule();
 			break;
 		default:
 			break;
