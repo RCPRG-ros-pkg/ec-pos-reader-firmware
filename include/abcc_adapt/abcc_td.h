@@ -34,38 +34,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/*******************************************************************************
-**
-** Constants
-**
-********************************************************************************
-*/
-
 //! Target system is little endian
 /* #define ABCC_SYS_BIG_ENDIAN  */
 
 //! Target system has 8bit char type
 /* #define ABCC_SYS_16_BIT_CHAR */
 
-/*---------------------------------------------------------------------------
-**
-** BOOL8
-**
-** INT8
-** INT16
-** INT32
-**
-** UINT8
-** UINT16
-** UINT32
-**
-** FLOAT32
-**
-** The standard boolean data type, 8-bit.
-** The standard signed 8, 16, and 32 bit data types (respectively).
-** The standard unsigned 8, 16, and 32 bit data types (respectively).
-**---------------------------------------------------------------------------
-*/
+//! Typedefs for basic types
 typedef bool     BOOL;
 typedef uint8_t  BOOL8;
 typedef uint8_t  UINT8;
@@ -76,60 +51,27 @@ typedef uint32_t UINT32;
 typedef int32_t  INT32;
 typedef float    FLOAT32;
 
-/*------------------------------------------------------------------------------
-** LeINT16
-** LeINT32
-** LeUINT16
-** LeUINT32
-**
-** Little endian data types for words and longwords.
-**------------------------------------------------------------------------------
-*/
+//! Typedefs for LittleEndian types
 typedef INT16     LeINT16;
 typedef INT32     LeINT32;
 typedef UINT16    LeUINT16;
 typedef UINT32    LeUINT32;
 
-/*------------------------------------------------------------------------------
-** BeINT16
-** BeINT32
-** BeUINT16
-** BeUINT32
-**
-** Big endian data types for words and longwords.
-**------------------------------------------------------------------------------
-*/
+//! Typedefs for BigEndian types
 typedef INT16     BeINT16;
 typedef INT32     BeINT32;
 typedef UINT16    BeUINT16;
 typedef UINT32    BeUINT32;
 
-/*---------------------------------------------------------------------------
-**
-** FALSE
-** TRUE
-**
-** These are the symbolic constants for true and false used in boolean
-** data type comparisons.
-**
-**---------------------------------------------------------------------------
-*/
+//! Values for boolean constants
 #ifndef FALSE
    #define FALSE     false
 #endif
-
 #ifndef TRUE
    #define TRUE      ( !FALSE )
 #endif
 
-/*---------------------------------------------------------------------------
-**
-** NULL
-**
-** Default value for invalid pointers.
-**
-**---------------------------------------------------------------------------
-*/
+//! Value of null pointer
 #ifndef NULL
 #define NULL 0
 #endif

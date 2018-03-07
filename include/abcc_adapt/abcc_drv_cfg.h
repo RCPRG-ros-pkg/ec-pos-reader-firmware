@@ -91,8 +91,8 @@
 #define ABCC_CFG_ERR_REPORTING_ENABLED             ( TRUE )
 #define ABCC_CFG_DEBUG_EVENT_ENABLED               ( TRUE )
 #define ABCC_CFG_DEBUG_ERR_ENABLED                 ( TRUE )
-#define ABCC_CFG_DEBUG_MESSAGING                   ( TRUE )
-#define ABCC_CFG_DEBUG_CMD_SEQ_ENABLED             ( TRUE )
+#define ABCC_CFG_DEBUG_MESSAGING                   ( FALSE )
+#define ABCC_CFG_DEBUG_CMD_SEQ_ENABLED             ( FALSE )
 
 //! Set startup timeout to be 1.5 seconds.
 //! After that, if driver is still not responding, APPL_MODULE_NOT_ANSWERING

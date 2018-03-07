@@ -32,7 +32,6 @@
 #include "abcc_drv_cfg.h"
 #include "abcc_ad_if.h"
 #include "abcc_obj_cfg.h"
-#include "abcc_platform_cfg.h"
 
 /*******************************************************************************
 ** Constants
@@ -162,13 +161,7 @@
 ** Active ADI setup to use
 **------------------------------------------------------------------------------
 */
-#ifndef APPL_ACTIVE_ADI_SETUP
-#ifdef USE_BOARD_SPECIFIC_ADI_SETUP
-#define APPL_ACTIVE_ADI_SETUP   APPL_ADI_SETUP_BOARD_SPECIFIC
-#else
 #define APPL_ACTIVE_ADI_SETUP   APPL_ADI_SETUP_SPEED_EXAMPLE
-#endif
-#endif
 
 /*------------------------------------------------------------------------------
 ** If structured data types is used i.e. psStruct != NULL (see example below),
