@@ -32,8 +32,8 @@
 
 #include "abcc_sys_adapt.h"
 #include "abcc_sys_adapt_spi.h"
-#include "abcc_sys_adapt_par.h"
-#include "abcc_sys_adapt_ser.h"
+
+#include "abcc.h"
 
 #include "tivaware/inc/hw_memmap.h"
 #include "tivaware/driverlib/sysctl.h"
@@ -45,19 +45,28 @@
 #include "tivaware/driverlib/rom_map.h"
 #include "tivaware/utils/uartstdio.h"
 
-#define MD0_PIN GPIO_PIN_1
-#define RESET_PIN GPIO_PIN_2
-#define IRQ_PIN GPIO_PIN_6
+#define MD0_PIN      GPIO_PIN_1
+#define RESET_PIN    GPIO_PIN_2
+#define IRQ_PIN      GPIO_PIN_6
 #define MI0_SYNC_PIN GPIO_PIN_7
-#define MI1_PIN GPIO_PIN_3
+#define MI1_PIN      GPIO_PIN_3
 
-void portaIRQ()
+static ABCC_SYS_SpiDataReceivedCbfType spiDataReceivedCb = 0;
+
+//! Interrupt Service Routine for Port A.
+//! Handles interrupts from IRQ and MI0/SYNC pins
+void portaISR()
 {
    int maskedStatus = GPIOIntStatus(GPIO_PORTA_BASE, true);
-   GPIOIntClear(GPIO_PORTA_BASE, GPIO_INT_PIN_6 | GPIO_INT_PIN_7);
+   assert(maskedStatus & (IRQ_PIN | MI0_SYNC_PIN)); // valid interrupt occured
+   GPIOIntClear(GPIO_PORTA_BASE, IRQ_PIN | MI0_SYNC_PIN);
+
    UARTprintf("Interrupt occured, status=%x\n", maskedStatus);
+   ABCC_ISR();
 }
 
+//! Performs hardware initialization to work with anybus module.
+//! Initializes GPIO pins and SPI
 BOOL ABCC_SYS_HwInit( void )
 {
    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
@@ -72,7 +81,6 @@ BOOL ABCC_SYS_HwInit( void )
    // Configure IRQ pin to be interrupt driven input
    MAP_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, IRQ_PIN);
    MAP_GPIOIntTypeSet(GPIO_PORTA_BASE, IRQ_PIN, GPIO_FALLING_EDGE);
-   MAP_GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_6);
 
    // Configure MI1 pin as input
    MAP_GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, MI1_PIN);
@@ -80,10 +88,9 @@ BOOL ABCC_SYS_HwInit( void )
    // Configure MI0/Sync pin to be interrupt driven input
    MAP_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, MI0_SYNC_PIN);
    MAP_GPIOIntTypeSet(GPIO_PORTA_BASE, MI0_SYNC_PIN, GPIO_RISING_EDGE);
-   MAP_GPIOIntEnable(GPIO_PORTA_BASE, GPIO_INT_PIN_7);
 
    // Register interrupts for Port A
-   GPIOIntRegister(GPIO_PORTA_BASE, portaIRQ);
+   GPIOIntRegister(GPIO_PORTA_BASE, portaISR);
 
    // Configure GPIO of pins of SSI2 module.
    MAP_GPIOPinTypeSSI(GPIO_PORTB_BASE,
@@ -105,21 +112,15 @@ BOOL ABCC_SYS_HwInit( void )
    return true;
 }
 
-
+//! Should perform additional to HwInit work. In this case, does nothing.
 BOOL ABCC_SYS_Init( void )
 {
-   /*
-   ** Implement according to abcc_sys_adapt.h
-   */
    return true;
 }
 
-
+//! Should release all alocated resources. In this case, does nothing.
 void ABCC_SYS_Close( void )
 {
-   /*
-   ** Implement according to abcc_sys_adapt.h
-   */
 }
 
 //! Sets Reset pin to LOW
@@ -134,8 +135,6 @@ void ABCC_SYS_HWReleaseReset( void )
    GPIOPinWrite(GPIO_PORTB_BASE, RESET_PIN, RESET_PIN);
 }
 
-
-#ifndef ABCC_CFG_ABCC_MODULE_ID
 //! Reads states of MI0 and MI1 pins and returns received Module ID
 UINT8 ABCC_SYS_ReadModuleId( void )
 {
@@ -146,75 +145,50 @@ UINT8 ABCC_SYS_ReadModuleId( void )
    assert(result == 0x2); // CC40 Only
    return result;
 }
-#endif
 
-
-#if( ABCC_CFG_MOD_DETECT_PINS_CONN )
-//! Checks MD0 pin, if module is present.
+//! Performs module detection, by checking MD0 pin
+//! If it is LOW, then module is available, otherwise not.
 BOOL ABCC_SYS_ModuleDetect( void )
 {
    const int md0State = GPIOPinRead(GPIO_PORTB_BASE, MD0_PIN);
    const bool moduleDetected = (md0State ? false : true);
    return moduleDetected;
 }
-#endif
 
-// #if( ABCC_CFG_SYNC_ENABLE && ABCC_CFG_USE_ABCC_SYNC_SIGNAL )
 // void ABCC_SYS_SyncInterruptEnable( void )
 // {
 //    /*
 //    ** Implement according to abcc_sys_adapt.h
 //    */
 // }
-// #endif
 
-// #if( ABCC_CFG_SYNC_ENABLE && ABCC_CFG_USE_ABCC_SYNC_SIGNAL )
 // void ABCC_SYS_SyncInterruptDisable( void )
 // {
 //    /*
 //    ** Implement according to abcc_sys_adapt.h
 //    */
 // }
-// #endif
 
-// #if( ABCC_CFG_INT_ENABLED )
-// void ABCC_SYS_AbccInterruptEnable( void )
-// {
+//! Enables interrupt from IRQ pin
+void ABCC_SYS_AbccInterruptEnable( void )
+{
+   GPIOIntEnable(GPIO_PORTA_BASE, IRQ_PIN);
+}
 
-//    ** Implement according to abcc_sys_adapt.h
+//! Disables interrupt from IRQ pin
+void ABCC_SYS_AbccInterruptDisable( void )
+{
+   GPIOIntDisable(GPIO_PORTA_BASE, IRQ_PIN);
+}
 
-// }
-
-
-// void ABCC_SYS_AbccInterruptDisable( void )
-// {
-//    /*
-//    ** Implement according to abcc_sys_adapt.h
-//    */
-// }
-// #endif
-
-
-// #if( ABCC_CFG_POLL_ABCC_IRQ_PIN )
-// BOOL ABCC_SYS_IsAbccInterruptActive( void )
-// {
-//    /*
-//    ** Implement according to abcc_sys_adapt.h
-//    */
-// }
-// #endif
-
-#define FIFO_SIZE 8
-static ABCC_SYS_SpiDataReceivedCbfType spiDataReceivedCb = 0;
-
-#if( ABCC_CFG_DRV_SPI )
 //! Registers callback to be called after MISO frame receive.
 void ABCC_SYS_SpiRegDataReceived( ABCC_SYS_SpiDataReceivedCbfType pnDataReceived  )
 {
    spiDataReceivedCb = pnDataReceived;
 }
 
-//! Stores MOSI and MISO buffers, and starts MOSI transfer.
+//! Sends MOSI frame and simultaneously receives MISO frame.
+//! At the end, invokes `spiDataReceivedCb` callback
 void ABCC_SYS_SpiSendReceive( void* pxSendDataBuffer, void* pxReceiveDataBuffer, UINT16 iLength )
 {
    const uint8_t* txBuffer = (const uint8_t*)(pxSendDataBuffer);
@@ -266,4 +240,3 @@ void ABCC_SYS_SpiSendReceive( void* pxSendDataBuffer, void* pxReceiveDataBuffer,
    assert(spiDataReceivedCb);
    spiDataReceivedCb();
 }
-#endif
