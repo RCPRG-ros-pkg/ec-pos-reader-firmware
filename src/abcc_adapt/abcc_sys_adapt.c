@@ -100,14 +100,11 @@ BOOL ABCC_SYS_HwInit( void )
    MAP_GPIOPinConfigure(GPIO_PB6_SSI2RX);
    MAP_GPIOPinConfigure(GPIO_PB7_SSI2TX);
 
-   // configure SSI2: SPI 3 mode, master, 1MHz and 8bits frame width, DMA RX+TX
+   // configure SSI2: SPI 3 mode, master, 5MHz and 8bits frame width, DMA RX+TX
    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
    MAP_SSIConfigSetExpClk(SSI2_BASE, MAP_SysCtlClockGet(),
-      SSI_FRF_MOTO_MODE_3, SSI_MODE_MASTER, 1000000, 8);
+      SSI_FRF_MOTO_MODE_3, SSI_MODE_MASTER, 5000000, 8);
    SSIEnable(SSI2_BASE);
-
-   // globally enable interrupts
-   IntMasterEnable();
 
    return true;
 }
