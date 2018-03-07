@@ -41,10 +41,11 @@
 ********************************************************************************
 */
 
+//! Target system is little endian
 /* #define ABCC_SYS_BIG_ENDIAN  */
-/* #define ABCC_SYS_16_BIT_CHAR */
 
-#define ABCC_CFG_PAR_EXT_BUS_ENDIAN_DIFF (FALSE)
+//! Target system has 8bit char type
+/* #define ABCC_SYS_16_BIT_CHAR */
 
 /*---------------------------------------------------------------------------
 **
@@ -65,15 +66,15 @@
 ** The standard unsigned 8, 16, and 32 bit data types (respectively).
 **---------------------------------------------------------------------------
 */
-typedef bool             BOOL;
-typedef uint8_t   BOOL8;
-typedef uint8_t   UINT8;
-typedef int8_t     INT8;
-typedef uint16_t  UINT16;
-typedef int16_t    INT16;
-typedef uint32_t    UINT32;
-typedef int32_t      INT32;
-typedef float           FLOAT32;
+typedef bool     BOOL;
+typedef uint8_t  BOOL8;
+typedef uint8_t  UINT8;
+typedef int8_t   INT8;
+typedef uint16_t UINT16;
+typedef int16_t  INT16;
+typedef uint32_t UINT32;
+typedef int32_t  INT32;
+typedef float    FLOAT32;
 
 /*------------------------------------------------------------------------------
 ** LeINT16
@@ -114,7 +115,7 @@ typedef UINT32    BeUINT32;
 **---------------------------------------------------------------------------
 */
 #ifndef FALSE
-   #define FALSE     0
+   #define FALSE     false
 #endif
 
 #ifndef TRUE
