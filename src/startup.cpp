@@ -6,16 +6,9 @@
 
 #include <cstdlib>
 
+#include "init.hpp"
+
 extern "C" {
-
-// configure clock
-extern void preinitHardware();
-
-// configure IO
-extern void initIO();
-
-// configure hardware peripherials
-extern void initHardware();
 
 // The entry point for the application.
 extern int main();
@@ -226,11 +219,11 @@ resetISR(void)
         *(bss++) = 0;
     }
 
+    __libc_init_array();
+
     initIO();
 
     initHardware();
-
-    __libc_init_array();
 
     // Call the application's entry point.
     auto code = main();

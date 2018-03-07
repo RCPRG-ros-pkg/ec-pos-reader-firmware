@@ -11,26 +11,40 @@
 
 #include "util/driverlib/ssi.hpp"
 
+#include "common.hpp"
+
+namespace {
+
+constexpr auto IOBaudRate = 115200;
+
+} // namespace
+
 extern "C" {
 
+//! Initializes early hardware
+//! Sets up system clock to the 80MHz
 void preinitHardware()
 {
-    MAP_SysCtlClockSet(SYSCTL_SYSDIV_4
+    MAP_SysCtlClockSet(SYSCTL_SYSDIV_2_5
         | SYSCTL_USE_PLL
         | SYSCTL_XTAL_16MHZ
         | SYSCTL_OSC_MAIN);
+    assert(MAP_SysCtlClockGet() == ClockHz);
 }
 
+//! Initializes IO UART channel
+//! Configures UART0 to work with UARTstdio
 void initIO()
 {
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 	MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-	constexpr auto baudRate = 115200;
-	const auto systemClock = MAP_SysCtlClockGet();
-	UARTStdioConfig(0, baudRate, systemClock);
+	UARTStdioConfig(0, IOBaudRate, ClockHz);
+
+	UARTprintf("Init: IO initialized\n");
 }
 
+//! Initializes additional hardware used by software
 void initHardware()
 {
 	// // Configure GPIO of pins of SSI0 module. Pull-up SSI0CLK pin
@@ -47,6 +61,8 @@ void initHardware()
 	// MAP_SSIConfigSetExpClk(SSI0_BASE, MAP_SysCtlClockGet(), SSI_FRF_TI,
 	// 	SSI_MODE_MASTER, 1500000, 13);
 	// SSIEnable(SSI0_BASE);
+
+	UARTprintf("Init: Hardware initialized.\n");
 }
 
 }
