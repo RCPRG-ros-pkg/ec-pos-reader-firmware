@@ -20,7 +20,7 @@
 /*
 ** Attribute 3: Enable Web Server  (BOOL - TRUE/FALSE)
 */
-#define ETN_IA_ENABLE_WEB_ENABLE                FALSE
+#define ETN_IA_ENABLE_WEB_ENABLE                TRUE
 #define ETN_IA_ENABLE_WEB_VALUE                 TRUE
 
 /*
@@ -38,7 +38,7 @@
 /*
 ** Attribute 6: Enable FTP server  (BOOL - TRUE/FALSE)
 */
-#define ETN_IA_ENABLE_FTP_ENABLE                FALSE
+#define ETN_IA_ENABLE_FTP_ENABLE                TRUE
 #define ETN_IA_ENABLE_FTP_VALUE                 TRUE
 
 /*
@@ -73,13 +73,13 @@
 /*
 ** Attribute 12: Enable Port 1 state   (ENUM)
 */
-#define ETN_IA_PORT1_STATE_ENABLE               FALSE
+#define ETN_IA_PORT1_STATE_ENABLE               TRUE
 #define ETN_IA_PORT1_STATE_VALUE                ABP_ETN_IA_PORT_STATE_ENABLE
 
 /*
 ** Attribute 13: Enable Port 2 state   (ENUM)
 */
-#define ETN_IA_PORT2_STATE_ENABLE               FALSE
+#define ETN_IA_PORT2_STATE_ENABLE               TRUE
 #define ETN_IA_PORT2_STATE_VALUE                ABP_ETN_IA_PORT_STATE_ENABLE
 
 /*

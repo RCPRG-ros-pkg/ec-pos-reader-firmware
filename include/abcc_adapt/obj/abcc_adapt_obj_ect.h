@@ -105,7 +105,7 @@
 /*
 ** Attribute 17: Enable EoE (BOOL - TRUE/FALSE)
 */
-#define ECT_IA_ENABLE_EOE_ENABLE                FALSE
+#define ECT_IA_ENABLE_EOE_ENABLE                TRUE
 #define ECT_IA_ENABLE_EOE_VALUE                 TRUE
 
 /*
@@ -117,7 +117,7 @@
 /*
 ** Attribute 20: EtherCAT state
 */
-#define ECT_IA_ETHERCAT_STATE_ENABLE            FALSE
+#define ECT_IA_ETHERCAT_STATE_ENABLE            TRUE
 
 /*
 ** Attribute 21: State Transition Timeouts (Array of UINT32)

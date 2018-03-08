@@ -32,6 +32,10 @@ include_directories(tivaware-cmake/include)
 
 # THIS PROJECT
 # configuration: sources, flags, standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Os")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
@@ -60,16 +64,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
 --specs=nano.specs \
 ")
 
-
 set(LD_SCRIPT "${CMAKE_SOURCE_DIR}/src/tm4c123gh6pm.ld")
 set(CMAKE_EXE_LINKER_FLAGS "\
 -Wl,--gc-sections \
 -Wl,-Map=main.map \
 -Wl,-T ${LD_SCRIPT} \
 ")
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(include)
 include_directories(include/abcc_abp)

@@ -1,30 +1,3 @@
-/*******************************************************************************
-********************************************************************************
-**                                                                            **
-** ABCC Starter Kit version 3.04.01 (2018-01-23)                              **
-**                                                                            **
-** Delivered with:                                                            **
-**    ABP            7.55.01 (2017-12-20)                                     **
-**    ABCC Driver    5.04.01 (2017-12-18)                                     **
-**                                                                            */
-/*******************************************************************************
-********************************************************************************
-** COPYRIGHT NOTIFICATION (c) 2015 HMS Industrial Networks AB                 **
-**                                                                            **
-** This code is the property of HMS Industrial Networks AB.                   **
-** The source code may not be reproduced, distributed, or used without        **
-** permission. When used together with a product from HMS, permission is      **
-** granted to modify, reproduce and distribute the code in binary form        **
-** without any restrictions.                                                  **
-**                                                                            **
-** THE CODE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. HMS DOES NOT    **
-** WARRANT THAT THE FUNCTIONS OF THE CODE WILL MEET YOUR REQUIREMENTS, OR     **
-** THAT THE OPERATION OF THE CODE WILL BE UNINTERRUPTED OR ERROR-FREE, OR     **
-** THAT DEFECTS IN IT CAN BE CORRECTED.                                       **
-********************************************************************************
-********************************************************************************
-*/
-
 #include <assert.h>
 
 #include "abcc_drv_cfg.h"
@@ -118,6 +91,7 @@ BOOL ABCC_SYS_Init( void )
 //! Should release all alocated resources. In this case, does nothing.
 void ABCC_SYS_Close( void )
 {
+   /* do nothing */
 }
 
 //! Sets Reset pin to LOW
