@@ -1,1 +1,8 @@
 build*
+include/abcc_abp/*
+include/abcc_drv/*
+include/abcc_obj/*
+src/abcc_drv/*
+!src/abcc_drv/CMakeLists.txt
+src/abcc_obj/*
+!src/abcc_obj/CMakeLists.txt
