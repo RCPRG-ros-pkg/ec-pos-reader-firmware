@@ -39,23 +39,23 @@ void _exit(int status)
  *
  * @return Returns -1 and sets errno to EINVAL
  */
-int _kill(int pid, int sig)
-{
-    static_cast<void>(pid);
-    static_cast<void>(sig);
-    errno = EINVAL;
-    return (-1);
-}
+// int _kill(int pid, int sig)
+// {
+//     static_cast<void>(pid);
+//     static_cast<void>(sig);
+//     errno = EINVAL;
+//     return (-1);
+// }
 
 /**
  * @brief Get Process ID minimal implementation
  * @details
  * @return Returns 1
  */
-int _getpid()
-{
-    return 1;
-}
+// int _getpid()
+// {
+//     return 1;
+// }
 
 /**
  * @brief Close a file. Minimal implementation
@@ -64,11 +64,11 @@ int _getpid()
  * @param file
  * @return Returns -1
  */
-int _close(int file)
-{
-    static_cast<void>(file);
-    return -1;
-}
+// int _close(int file)
+// {
+//     static_cast<void>(file);
+//     return -1;
+// }
 
 /**
  * @brief Status of an open file. Minimal implementation
@@ -79,13 +79,13 @@ int _close(int file)
  *
  * @return Returns 0
  */
-#include <sys/stat.h>
-int _fstat(int file, struct stat *st)
-{
-    static_cast<void>(file);
-    st->st_mode = S_IFCHR;
-    return 0;
-}
+// #include <sys/stat.h>
+// int _fstat(int file, struct stat *st)
+// {
+//     static_cast<void>(file);
+//     st->st_mode = S_IFCHR;
+//     return 0;
+// }
 
 /**
  * @brief Query whether output stream is a terminal. Minimal implementation
@@ -94,19 +94,19 @@ int _fstat(int file, struct stat *st)
  * @param file
  * @return Always returns 1 - output stream is a terminal
  */
-int _isatty(int file)
-{
-    static_cast<void>(file);
-	switch (file){
-	    case STDOUT_FILENO:
-	    case STDERR_FILENO:
-	    case STDIN_FILENO:
-	        return 1;
-	    default:
-	        errno = EBADF;
-	        return 0;
-    }
-}
+// int _isatty(int file)
+// {
+//     static_cast<void>(file);
+// 	switch (file){
+// 	    case STDOUT_FILENO:
+// 	    case STDERR_FILENO:
+// 	    case STDIN_FILENO:
+// 	        return 1;
+// 	    default:
+// 	        errno = EBADF;
+// 	        return 0;
+//     }
+// }
 
 /**
  * @brief Set position in a file. Minimal implementation
@@ -117,13 +117,13 @@ int _isatty(int file)
  * @param dir
  * @return Always returns 0
  */
-int _lseek(int file, int ptr, int dir)
-{
-    static_cast<void>(file);
-    static_cast<void>(ptr);
-    static_cast<void>(dir);
-    return 0;
-}
+// int _lseek(int file, int ptr, int dir)
+// {
+//     static_cast<void>(file);
+//     static_cast<void>(ptr);
+//     static_cast<void>(dir);
+//     return 0;
+// }
 
 // /**
 //  * @brief Read from a file. Minimal implementation

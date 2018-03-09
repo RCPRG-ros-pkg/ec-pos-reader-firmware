@@ -221,9 +221,9 @@ resetISR(void)
 
     __libc_init_array();
 
-    initIO();
-
     initHardware();
+
+    initIO();
 
     // Call the application's entry point.
     auto code = main();

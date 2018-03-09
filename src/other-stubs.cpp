@@ -16,19 +16,19 @@ void abort()
     while(1);
 }
 
-//! Prevents to generate unwind code, what occurs when calling stdlib functions
-extern "C"
-void __aeabi_unwind_cpp_pr1 (void)
-{
-	abort();
-}
+// //! Prevents to generate unwind code, what occurs when calling stdlib functions
+// extern "C"
+// void __aeabi_unwind_cpp_pr1 (void)
+// {
+// 	abort();
+// }
 
-//! Prevents to generate unwind code, what occurs when calling stdlib functions
-extern "C"
-void __aeabi_unwind_cpp_pr0 (void)
-{
-	abort();
-}
+// //! Prevents to generate unwind code, what occurs when calling stdlib functions
+// extern "C"
+// void __aeabi_unwind_cpp_pr0 (void)
+// {
+// 	abort();
+// }
 
 //! Does exactly the same as the standard function, but doesn't use classic
 //! printf, because it requires using heap and malloc. Instead, use UARTprintf
@@ -42,10 +42,10 @@ void __assert_func(const char* filename, int lineno,
 	abort();
 }
 
-void *operator new(size_t) { abort(); }
-void *operator new[](size_t) { abort(); }
-void operator delete(void *) noexcept { abort(); }
-void operator delete(void *, std::size_t) noexcept { abort(); }
-void operator delete[](void *) noexcept { abort(); }
-void operator delete[](void *, std::size_t) noexcept { abort(); }
-void *__cxa_pure_virtual = nullptr;
+// void *operator new(size_t) { abort(); }
+// void *operator new[](size_t) { abort(); }
+// void operator delete(void *) noexcept { abort(); }
+// void operator delete(void *, std::size_t) noexcept { abort(); }
+// void operator delete[](void *) noexcept { abort(); }
+// void operator delete[](void *, std::size_t) noexcept { abort(); }
+// void *__cxa_pure_virtual = nullptr;
