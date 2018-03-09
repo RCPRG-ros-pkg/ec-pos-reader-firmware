@@ -52,24 +52,11 @@
 #include "sync_obj.h"
 #include "safe_obj.h"
 
-#include "eip.h"
-#include "prt.h"
-#include "epl.h"
-#include "dpv1.h"
 #include "ect.h"
-#include "dev.h"
-#include "mod.h"
 #include "cop.h"
-#include "ccl.h"
-#include "cfn.h"
 
 #include "abcc_obj_cfg.h"
 #include "appl_adi_config.h"
-
-/*******************************************************************************
-** Constants
-********************************************************************************
-*/
 
 /*------------------------------------------------------------------------------
 ** Maximum start up time when the module is upgrading its firmware
@@ -235,7 +222,6 @@ static volatile BOOL appl_fAbccStatusEvent = FALSE;
 ** Forward declarations
 **------------------------------------------------------------------------------
 */
-
 static ABCC_CmdSeqRespStatusType HandleExceptionResp( ABP_MsgType* psMsg );
 static ABCC_CmdSeqRespStatusType HandleExceptionInfoResp( ABP_MsgType* psMsg );
 static ABCC_CmdSeqCmdStatusType ReadExeption( ABP_MsgType* psMsg );
@@ -838,7 +824,6 @@ void APPL_Shutdown( void )
    appl_eAbccHandlerState = APPL_SHUTDOWN;
 }
 
-
 void APPL_Reset( void )
 {
    appl_eAbccHandlerState = APPL_DEVRESET;
@@ -898,105 +883,35 @@ void ABCC_CbfDriverError( ABCC_SeverityType eSeverity, ABCC_ErrorCodeType iError
 
 void ABCC_CbfReceiveMsg( ABP_MsgType* psReceivedMsg )
 {
-   switch(  ABCC_GetMsgDestObj( psReceivedMsg ) )
+   switch(ABCC_GetMsgDestObj(psReceivedMsg))
    {
-#if OPCUA_OBJ_ENABLE
-   case ABP_OBJ_NUM_OPCUA:
-
-      OPCUA_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if SAFE_OBJ_ENABLE
-   case ABP_OBJ_NUM_SAFE:
-
-      SAFE_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if EPL_OBJ_ENABLE
-   case ABP_OBJ_NUM_EPL:
-
-      EPL_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if EIP_OBJ_ENABLE
-   case ABP_OBJ_NUM_EIP:
-
-      EIP_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if PRT_OBJ_ENABLE
-   case ABP_OBJ_NUM_PNIO:
-
-      PRT_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if DPV1_OBJ_ENABLE
-   case ABP_OBJ_NUM_DPV1:
-
-      DPV1_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if DEV_OBJ_ENABLE
-   case ABP_OBJ_NUM_DEV:
-
-      DEV_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if MOD_OBJ_ENABLE
-   case ABP_OBJ_NUM_MOD:
-
-      MOD_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if COP_OBJ_ENABLE
    case ABP_OBJ_NUM_COP:
-
       COP_ProcessCmdMsg( psReceivedMsg );
       break;
-#endif
-#if ETN_OBJ_ENABLE
-   case ABP_OBJ_NUM_ETN:
 
+   case ABP_OBJ_NUM_ETN:
       ETN_ProcessCmdMsg( psReceivedMsg );
       break;
-#endif
-#if ECT_OBJ_ENABLE
-   case ABP_OBJ_NUM_ECT:
 
+   case ABP_OBJ_NUM_ECT:
       ECT_ProcessCmdMsg( psReceivedMsg );
       break;
-#endif
-   case ABP_OBJ_NUM_APPD:
 
+   case ABP_OBJ_NUM_APPD:
       AD_ProcObjectRequest( psReceivedMsg );
       break;
 
-#if APP_OBJ_ENABLE
    case ABP_OBJ_NUM_APP:
-
       APP_ProcessCmdMsg( psReceivedMsg );
       break;
-#endif
+
 #if SYNC_OBJ_ENABLE
    case ABP_OBJ_NUM_SYNC:
-
       SYNC_ProcessCmdMsg( psReceivedMsg );
       break;
-#endif
-#if CCL_OBJ_ENABLE
-   case ABP_OBJ_NUM_CCL:
 
-      CCL_ProcessCmdMsg( psReceivedMsg );
-      break;
-#endif
-#if CFN_OBJ_ENABLE
-   case ABP_OBJ_NUM_CFN:
-
-      CFN_ProcessCmdMsg( psReceivedMsg );
-      break;
 #endif
    default:
-
       /*
       ** We have received a command to an unsupported object.
       */
@@ -1156,5 +1071,4 @@ void ABCC_CbfUserInitReq( void )
    ** Start user init command sequence
    */
    ABCC_AddCmdSeq( appl_asUserInitCmdSeq, UserInitDone );
-
 }
