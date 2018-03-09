@@ -9,31 +9,14 @@ file(GLOB etl_SOURCES
 
 message(STATUS "etl_SOURCES=${etl_SOURCES}")
 
-# Specify compile flags without exceptions and any unwind code
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
--Wall \
--Wno-error \
--Wno-unused-parameter \
--Wno-old-style-declaration \
--Wno-shift-negative-value \
--Wno-sign-compare \
--Wextra \
--ffunction-sections \
--fdata-sections \
--fno-exceptions \
--fno-unwind-tables \
--fno-asynchronous-unwind-tables \
-")
-
-# Remove unused sections from library
-set(CMAKE_EXE_LINKER_FLAGS "\
--Wl,--gc-sections \
-")
-
 # Add library target
 add_library(etl
 	${etl_SOURCES}
 )
 
-set_target_properties(etl PROPERTIES C_STANDARD 11)
-set_target_properties(etl PROPERTIES C_EXTENSIONS 11)
+set_target_properties(etl PROPERTIES
+	CXX_STANDARD 17
+	CXX_EXTENSIONS OFF
+	LINK_FLAGS "-Wl,--gc-sections"
+	COMPILE_FLAGS "-Wall -Werror -Wextra -ffunction-sections -fno-exceptions -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables"
+)
