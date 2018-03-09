@@ -11,15 +11,10 @@
 
 #include "util/driverlib/ssi.hpp"
 
-#include "common.hpp"
-
-namespace {
-
-constexpr auto IOBaudRate = 115200;
-
-} // namespace
-
 extern "C" {
+
+//! Global variable which contains speed of system clock
+int clockHz;
 
 //! Initializes early hardware
 //! Sets up system clock to the 80MHz
@@ -29,40 +24,39 @@ void preinitHardware()
         | SYSCTL_USE_PLL
         | SYSCTL_XTAL_16MHZ
         | SYSCTL_OSC_MAIN);
-    assert(MAP_SysCtlClockGet() == ClockHz);
+}
+
+//! Initializes additional hardware used by software
+//! Postcondition: clockHz will be set to non-zero value
+void initHardware()
+{
+	clockHz = MAP_SysCtlClockGet();
+	assert(clockHz != 0);
+
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+	MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+
+	// Configure GPIO of pins of SSI0 module. Pull-up SSI0CLK pin
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+	MAP_GPIOPinConfigure(GPIO_PA2_SSI0CLK);
+	MAP_GPIOPinConfigure(GPIO_PA3_SSI0FSS);
+	MAP_GPIOPinConfigure(GPIO_PA4_SSI0RX);
+	MAP_GPIOPinConfigure(GPIO_PA5_SSI0TX);
+	MAP_GPIOPinTypeSSI(GPIO_PORTA_BASE,
+		GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5);
+
+	// configure SSI0: TI SSI mode, master, 1.25MHz and 13bits frame width
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
 }
 
 //! Initializes IO UART channel
 //! Configures UART0 to work with UARTstdio
 void initIO()
 {
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-	MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-
-	UARTStdioConfig(0, IOBaudRate, ClockHz);
+	constexpr auto IOBaudRate = 115200;
+	UARTStdioConfig(0, IOBaudRate, clockHz);
 
 	UARTprintf("Init: IO initialized\n");
-}
-
-//! Initializes additional hardware used by software
-void initHardware()
-{
-	// // Configure GPIO of pins of SSI0 module. Pull-up SSI0CLK pin
-	// MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-	// MAP_GPIOPinConfigure(GPIO_PA2_SSI0CLK);
-	// MAP_GPIOPinConfigure(GPIO_PA3_SSI0FSS);
-	// MAP_GPIOPinConfigure(GPIO_PA4_SSI0RX);
-	// MAP_GPIOPinConfigure(GPIO_PA5_SSI0TX);
-	// MAP_GPIOPinTypeSSI(GPIO_PORTA_BASE,
-	// 	GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5);
-
-	// // configure SSI0: TI SSI mode, master, 1.5MHz and 13bits frame width
-	// MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
-	// MAP_SSIConfigSetExpClk(SSI0_BASE, MAP_SysCtlClockGet(), SSI_FRF_TI,
-	// 	SSI_MODE_MASTER, 1500000, 13);
-	// SSIEnable(SSI0_BASE);
-
-	UARTprintf("Init: Hardware initialized.\n");
 }
 
 }
