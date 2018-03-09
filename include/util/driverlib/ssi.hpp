@@ -32,7 +32,7 @@ std::uint32_t SSIGetDataNow(std::uint32_t baseAddress);
 bool SSIEnabled(std::uint32_t baseAddress);
 void SSIEOTEnable(std::uint32_t baseAddress);
 void SSIEOTDisable(std::uint32_t baseAddress);
-int SSIGetBitRate(std::uint32_t baseAddress);
+std::uint32_t SSIGetBitRate(std::uint32_t baseAddress, std::uint32_t clockRate);
 std::size_t SSIGetDataWidth(std::uint32_t baseAddress);
 SSIMode SSIGetMode(std::uint32_t baseAddress);
 bool SSIIdle(std::uint32_t baseAddress);
@@ -111,20 +111,6 @@ SSIGetDataWidth(std::uint32_t baseAddress)
 
 	const auto dataWidth = (dss + 1);
 	return dataWidth;
-}
-
-/**
- * @brief Gets bit rate of SSI module
- * @details TODO
- *
- * @param baseAddress base address of SSI module
- */
-inline int
-SSIGetBitRate(std::uint32_t baseAddress)
-{
-	static_cast<void>(baseAddress);
-	assert(false); // not implemented
-	return 0;
 }
 
 /**
