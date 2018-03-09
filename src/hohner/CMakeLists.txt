@@ -3,6 +3,7 @@ add_library(hohner
 )
 
 target_link_libraries(hohner
+	util_driverlib
 	device
 	etl
 )

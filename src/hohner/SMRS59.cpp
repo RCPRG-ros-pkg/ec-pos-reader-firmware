@@ -1,6 +1,7 @@
 #include "hohner/SMRS59.hpp"
 
 #include <cassert>
+#include <limits>
 
 #include "binary.h" // ETLCPP
 
@@ -17,7 +18,8 @@ namespace hohner {
 SMRS59::SMRS59(device::SSIMasterDevice& ssiMasterDevice)
 	:	_ssiMasterDevice(ssiMasterDevice)
 {
-	// assert(SSIGetBitRate(ssiMasterDevice.getBaseAddress()) < 1500000); // < 1.5MHz
+	assert(_ssiMasterDevice.getBitRate() < MaxBitRate);
+	assert(_ssiMasterDevice.getFrameWidth() == Resolution);
 }
 
 /**
@@ -31,14 +33,13 @@ SMRS59::SMRS59(device::SSIMasterDevice& ssiMasterDevice)
 Position
 SMRS59::readPosition()
 {
-	static_assert(device::SSIMasterDevice::DataWidth == 13);
+	// read one frame from device
 	assert(!_ssiMasterDevice.isBusy());
-
-	// read 13bit SSI frame from Encoder(Slave)
 	auto data = _ssiMasterDevice.read();
 
 	// clear unused bits
-	data &= ((1 << 13) - 1);
+	assert(_ssiMasterDevice.getFrameWidth() == Resolution);
+	data &= ((1 << Resolution) - 1);
 
 	// convert from gray code to binary
 	const auto value = etl::gray_to_binary(data);
