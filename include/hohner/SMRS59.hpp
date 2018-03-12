@@ -1,6 +1,6 @@
 #pragma once
 
-#include "device/SSIMasterDevice.hpp"
+#include "dev/SSIMasterDevice.hpp"
 
 #include "hohner/Position.hpp"
 
@@ -20,13 +20,13 @@ public:
 	static constexpr int MaxBitRate = 1500000;
 
 	//! Constructor
-	SMRS59(device::SSIMasterDevice& ssiMasterDevice);
+	SMRS59(dev::SSIMasterDevice& ssiMasterDevice);
 
 	//! Reads encoder position value. Blocking call.
 	Position readPosition();
 
 private:
-	device::SSIMasterDevice& _ssiMasterDevice;
+	dev::SSIMasterDevice& _ssiMasterDevice;
 };
 
 } // namespace hohner

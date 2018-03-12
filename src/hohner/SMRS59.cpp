@@ -15,7 +15,7 @@ namespace hohner {
  * @pre Bit rate of SSI module must be less than 1.5MHz (Encoder limit)
  * @param ssiMasterDevice
  */
-SMRS59::SMRS59(device::SSIMasterDevice& ssiMasterDevice)
+SMRS59::SMRS59(dev::SSIMasterDevice& ssiMasterDevice)
 	:	_ssiMasterDevice(ssiMasterDevice)
 {
 	assert(_ssiMasterDevice.getBitRate() < MaxBitRate);
