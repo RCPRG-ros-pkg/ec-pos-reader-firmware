@@ -20,10 +20,7 @@ std::uint32_t SSIGetBitRate(std::uint32_t baseAddress, std::uint32_t clockRate)
 	assert(clockPrescalerDivisor >= 2 && clockPrescalerDivisor <= 254); // datasheet
 	assert((clockPrescalerDivisor % 2) == 0); // datasheet
 
-	const int maxBitRate = clockPrescalerDivisor * (serialClockRate + 1) + 1;
-	assert(maxBitRate != 0);
-
-	const int bitRate = clockRate / maxBitRate;
+	const int bitRate = clockRate / (clockPrescalerDivisor * (1 + serialClockRate));
 	assert(bitRate > 0);
 
 	return bitRate;
