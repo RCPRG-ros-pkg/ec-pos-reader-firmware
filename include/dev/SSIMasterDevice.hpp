@@ -5,7 +5,9 @@
 
 #include "util/driverlib/ssi.hpp"
 
-namespace device {
+extern int clockHz;
+
+namespace dev {
 
 class SSIMasterDevice
 {
@@ -50,9 +52,6 @@ private:
 
 	//! Base address of Peripheral SSI module
 	const std::uint32_t _baseAddress;
-
-	//! Bit rate, at which data is transferred with device. Cached
-	int _bitRate;
 };
 
 /**
@@ -62,7 +61,7 @@ private:
 inline int
 SSIMasterDevice::getBitRate() const
 {
-	return _bitRate;
+	return SSIGetBitRate(_baseAddress, clockHz);
 }
 
 /**
@@ -90,4 +89,4 @@ SSIMasterDevice::getFrameWidth() const
 	return frameWidth;
 }
 
-} // namespace device
+} // namespace dev

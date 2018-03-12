@@ -1,4 +1,4 @@
-#include "device/SSIMasterDevice.hpp"
+#include "dev/SSIMasterDevice.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -6,7 +6,7 @@
 //! CPU clock speed
 extern int clockHz;
 
-namespace device {
+namespace dev {
 
 /**
  * @brief Constructor
@@ -32,7 +32,6 @@ void
 SSIMasterDevice::read(DataType* buffer, std::size_t size, std::size_t n)
 {
 	// Data type must be able to contain at least one frame
-	using DataType = device::SSIMasterDevice::DataType;
 	constexpr auto DataTypeResolution = std::numeric_limits<DataType>::digits;
 	static_assert(DataTypeResolution >= MaxFrameWidth);
 
@@ -62,7 +61,6 @@ SSIMasterDevice::DataType
 SSIMasterDevice::read()
 {
 	// Data type must be able to contain at least one frame
-	using DataType = device::SSIMasterDevice::DataType;
 	constexpr auto DataTypeResolution = std::numeric_limits<DataType>::digits;
 	static_assert(DataTypeResolution >= MaxFrameWidth);
 
@@ -96,11 +94,8 @@ SSIMasterDevice::configure(int bitRate, std::size_t frameWidth)
 	SSIEnable(_baseAddress);
 	assert(SSIGetMode(_baseAddress) == SSIMode::Master);
 	assert(SSIGetDataWidth(_baseAddress) == frameWidth);
-
-	// cache this information, because reading it from registers is difficult
-	_bitRate = bitRate;
 }
 
-} // namespace device
+} // namespace dev
 
 
