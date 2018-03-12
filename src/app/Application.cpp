@@ -13,9 +13,15 @@ namespace app {
  * @details Initializes ABCC module
  */
 Application::Application()
-	:	_ssiMasterDevice(SSI0_BASE, SSIMaster0BitRate, SSIMaster0DataWidth),
+	:	_sysTickMgr(_sysTickDevice, _eventLoop),
+		_timer(_sysTickMgr.allocTimer()),
+		_ssiMasterDevice(SSI0_BASE, SSIMaster0BitRate, SSIMaster0DataWidth),
 		_smrs59(_ssiMasterDevice)
 {
+	assert(_timer.isValid());
+
+	readEncoder();
+
 	UARTprintf("Application initialized\n");
 }
 
@@ -35,11 +41,28 @@ Application::~Application()
 void
 Application::run()
 {
-	while(1)
-	{
-		const auto position = _smrs59.readPosition();
-		UARTprintf("Encoder position: %d\n", position.value());
-	}
+	_eventLoop.run();
+}
+
+void
+Application::readEncoder()
+{
+	const auto position = _smrs59.readPosition();
+	UARTprintf("Encoder position: %d\n", position.value());
+
+	_timer.asyncWait(std::chrono::milliseconds(100),
+		[this](const auto errorStatus)
+		{
+			if(errorStatus)
+			{
+				UARTprintf("Error occured during wait. code=%d\n",
+					static_cast<int>(errorStatus.code()));
+			}
+			else
+			{
+				readEncoder();
+			}
+		});
 }
 
 } // namespace app

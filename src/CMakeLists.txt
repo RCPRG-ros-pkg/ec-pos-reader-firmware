@@ -43,7 +43,7 @@ add_subdirectory(abcc_drv)
 add_subdirectory(abcc_obj)
 add_subdirectory(app)
 add_subdirectory(appl)
-add_subdirectory(device)
+add_subdirectory(dev)
 add_subdirectory(hohner)
 add_subdirectory(util)
 
