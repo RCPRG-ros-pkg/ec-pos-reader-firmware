@@ -32,13 +32,14 @@
 #define ABCC_CFG_MAX_PROCESS_DATA_SIZE             (512)
 
 //! Disable both SYNC and usage of SYNC signal
-#define ABCC_CFG_SYNC_ENABLE                    (FALSE)
-#define ABCC_CFG_USE_ABCC_SYNC_SIGNAL           (FALSE)
+#define ABCC_CFG_SYNC_ENABLE                    (TRUE)
+#define ABCC_CFG_USE_ABCC_SYNC_SIGNAL           (TRUE)
 
 //! Enable interrupts from IRQ pin
 #define ABCC_CFG_POLL_ABCC_IRQ_PIN                 (FALSE)
 #define ABCC_CFG_INT_ENABLED                       (TRUE)
-// #define ABCC_CFG_INT_ENABLE_MASK_SPI            (0)
+// #define ABCC_CFG_INT_ENABLE_MASK_SPI            ()
+#define ABCC_CFG_HANDLE_INT_IN_ISR_MASK (0)
 
 //! Configure anybus watchdog to be called every 1 second
 #define ABCC_CFG_WD_TIMEOUT_MS                     (1000)
@@ -52,14 +53,14 @@
 #define ABCC_CFG_64BIT_ADI_SUPPORT                 (FALSE)
 
 //! Command sequencer configuration
-#define ABCC_CFG_MAX_NUM_CMD_SEQ                      (2)
+#define ABCC_CFG_MAX_NUM_CMD_SEQ                      (4)
 #define ABCC_CFG_CMD_SEQ_MAX_NUM_RETRIES              (0)
 
 //! Enable all debug prints
 #define ABCC_CFG_ERR_REPORTING_ENABLED             (TRUE)
 #define ABCC_CFG_DEBUG_EVENT_ENABLED               (TRUE)
 #define ABCC_CFG_DEBUG_ERR_ENABLED                 (TRUE)
-#define ABCC_CFG_DEBUG_MESSAGING                   (FALSE)
+#define ABCC_CFG_DEBUG_MESSAGING                   (TRUE)
 #define ABCC_CFG_DEBUG_CMD_SEQ_ENABLED             (FALSE)
 
 //! Set startup timeout to be 1.5 seconds.

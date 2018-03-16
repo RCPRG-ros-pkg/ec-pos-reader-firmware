@@ -264,8 +264,6 @@ EXTFUNC UINT16 APPL_GetNumAdi( void );
 **    None
 **------------------------------------------------------------------------------
 */
-#if SYNC_OBJ_ENABLE
 EXTFUNC void APPL_SyncIsr( void );
-#endif
 
 #endif  /* inclusion lock */

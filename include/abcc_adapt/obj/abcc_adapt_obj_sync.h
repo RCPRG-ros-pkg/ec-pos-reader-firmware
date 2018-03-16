@@ -4,7 +4,6 @@
 ** Sync Object (0xEE)
 **------------------------------------------------------------------------------
 */
-#if SYNC_OBJ_ENABLE
 /*
 ** Attribute 1: Cycle time (UINT32 - 0x00000000-0xFFFFFFFF)
 */
@@ -57,4 +56,3 @@
 #define SYNC_IA_SUPPORTED_SYNC_MODES_ENABLE     TRUE
 #define SYNC_IA_SUPPORTED_SYNC_MODES_VALUE      0x0003
 
-#endif /* #if SYNC_OBJ_ENABLE */

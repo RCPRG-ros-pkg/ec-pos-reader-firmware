@@ -182,47 +182,47 @@ EXTFUNC void APPL_Reset( void );
 */
 EXTFUNC void APPL_UnexpectedError( void );
 
-/*------------------------------------------------------------------------------
-** Called to check if the requested reset is permitted by the application.
-**------------------------------------------------------------------------------
-** Arguments:
-**    bResetType           - Type of reset, see ABP_RESET_XXX defines.
-**
-** Returns:
-**    BOOL                 - TRUE: Reset request is allowed.
-**                           FALSE: Reset request NOT allowed.
-**------------------------------------------------------------------------------
-*/
-EXTFUNC BOOL IsResetRequestAllowed( UINT8 bResetType );
+// ------------------------------------------------------------------------------
+// ** Called to check if the requested reset is permitted by the application.
+// **------------------------------------------------------------------------------
+// ** Arguments:
+// **    bResetType           - Type of reset, see ABP_RESET_XXX defines.
+// **
+// ** Returns:
+// **    BOOL                 - TRUE: Reset request is allowed.
+// **                           FALSE: Reset request NOT allowed.
+// **------------------------------------------------------------------------------
 
-/*------------------------------------------------------------------------------
-** Set HW switch 1 value to the application. The value is used to generate the
-** the node address or the IP address (192.168.0.X) depending on network.
-**
-** NOTE: For networks that uses an IP address and if this function is called
-**       with address 0 no address will be set to the ABCC.
-**------------------------------------------------------------------------------
-** Arguments:
-**    bSwitchValue - Switch 1 value
-**
-** Returns:
-**    None
-**------------------------------------------------------------------------------
-*/
-EXTFUNC void APPL_SetAddress( UINT8 bSwitchValue );
+// EXTFUNC BOOL IsResetRequestAllowed( UINT8 bResetType );
 
-/*------------------------------------------------------------------------------
-** Set HW switch 2 value to the application. The value is used to generate the
-** baud rate for networks that implements network configuration object instance
-** 2.
-**------------------------------------------------------------------------------
-** Arguments:
-**    bSwitchValue - Switch 2 value
-**
-** Returns:
-**    None
-**------------------------------------------------------------------------------
-*/
-EXTFUNC void APPL_SetBaudrate( UINT8 bSwitchValue );
+// ------------------------------------------------------------------------------
+// ** Set HW switch 1 value to the application. The value is used to generate the
+// ** the node address or the IP address (192.168.0.X) depending on network.
+// **
+// ** NOTE: For networks that uses an IP address and if this function is called
+// **       with address 0 no address will be set to the ABCC.
+// **------------------------------------------------------------------------------
+// ** Arguments:
+// **    bSwitchValue - Switch 1 value
+// **
+// ** Returns:
+// **    None
+// **------------------------------------------------------------------------------
+
+// EXTFUNC void APPL_SetAddress( UINT8 bSwitchValue );
+
+// /*------------------------------------------------------------------------------
+// ** Set HW switch 2 value to the application. The value is used to generate the
+// ** baud rate for networks that implements network configuration object instance
+// ** 2.
+// **------------------------------------------------------------------------------
+// ** Arguments:
+// **    bSwitchValue - Switch 2 value
+// **
+// ** Returns:
+// **    None
+// **------------------------------------------------------------------------------
+// */
+// EXTFUNC void APPL_SetBaudrate( UINT8 bSwitchValue );
 
 #endif  /* inclusion lock */

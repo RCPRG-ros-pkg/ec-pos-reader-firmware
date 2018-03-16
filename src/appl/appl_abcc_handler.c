@@ -35,6 +35,7 @@
 ********************************************************************************
 */
 
+#include <assert.h>
 #include <stdio.h>
 #include "abcc_td.h"
 #include "abp.h"
@@ -81,7 +82,7 @@
 #endif
 
 #ifndef APPL_DEFAULT_DHCP_ENABLE
-#define APPL_DEFAULT_DHCP_ENABLE                { FALSE }
+#define APPL_DEFAULT_DHCP_ENABLE                { TRUE }
 #endif
 
 /*******************************************************************************
@@ -176,7 +177,6 @@ static appl_IpSettingsType appl_sIpSettings =
 **------------------------------------------------------------------------------
 */
 static BOOL appl_fSetAddr = FALSE;
-static BOOL appl_fSetAddrInProgress = FALSE;
 
 /*------------------------------------------------------------------------------
 ** Network baud rate.
@@ -184,7 +184,6 @@ static BOOL appl_fSetAddrInProgress = FALSE;
 */
 static UINT8 appl_bNwBaudRate;
 static BOOL  appl_fSetBaudRate = FALSE;
-static BOOL  appl_fSetBaudRateInProgress = FALSE;
 
 /*------------------------------------------------------------------------------
 ** Flags to keep track of if the network type supports node ID/IP address
@@ -231,9 +230,7 @@ static ABCC_CmdSeqCmdStatusType UpdateIpAddress( ABP_MsgType* psMsg );
 static ABCC_CmdSeqCmdStatusType UpdateNetmask( ABP_MsgType* psMsg );
 static ABCC_CmdSeqCmdStatusType UpdateGateway( ABP_MsgType* psMsg );
 static ABCC_CmdSeqCmdStatusType UpdateDhcp( ABP_MsgType* psMsg );
-static void UpdateAddressDone( void );
 static ABCC_CmdSeqCmdStatusType UpdateBaudRate( ABP_MsgType* psMsg );
-static void UpdateBaudRateDone( void );
 
 /*------------------------------------------------------------------------------
 ** User init sequence. See abcc_cmd_seq_if.h
@@ -246,31 +243,6 @@ static const ABCC_CmdSeqType appl_asUserInitCmdSeq[] =
    ABCC_CMD_SEQ( UpdateGateway, NULL ),
    ABCC_CMD_SEQ( UpdateDhcp, NULL ),
    ABCC_CMD_SEQ( UpdateNodeAddress, NULL ),
-   ABCC_CMD_SEQ( UpdateBaudRate, NULL ),
-   ABCC_CMD_SEQ_END()
-};
-
-/*------------------------------------------------------------------------------
-** Set IP or node address.
-** Sequence triggered when the address switch has changed value.
-** See abcc_cmd_seq_if.h.
-**------------------------------------------------------------------------------
-*/
-static const ABCC_CmdSeqType appl_asAddressChangedCmdSeq[] =
-{
-   ABCC_CMD_SEQ( UpdateIpAddress, NULL ),
-   ABCC_CMD_SEQ( UpdateNodeAddress, NULL ),
-   ABCC_CMD_SEQ_END()
-};
-
-/*------------------------------------------------------------------------------
-** Set baud rate.
-** Sequence triggered when the baud rate switch has changed value.
-** See abcc_cmd_seq_if.h.
-**------------------------------------------------------------------------------
-*/
-static const ABCC_CmdSeqType appl_asBaudRateChangedCmdSeq[] =
-{
    ABCC_CMD_SEQ( UpdateBaudRate, NULL ),
    ABCC_CMD_SEQ_END()
 };
@@ -366,18 +338,6 @@ static ABCC_CmdSeqRespStatusType HandleExceptionInfoResp( ABP_MsgType* psMsg )
 
    (void)bExceptionInfo;
    return( ABCC_EXEC_NEXT_COMMAND );
-}
-
-/*------------------------------------------------------------------------------
-**  Notification that the address is updated.
-**
-**  This function is a part of a command sequence. See description of
-**  ABCC_CmdSeqDoneHandler type in cmd_seq_if.h
-**------------------------------------------------------------------------------
-*/
-static void UpdateAddressDone( void )
-{
-   appl_fSetAddrInProgress = FALSE;
 }
 
 /*------------------------------------------------------------------------------
@@ -511,18 +471,6 @@ static ABCC_CmdSeqCmdStatusType UpdateNodeAddress( ABP_MsgType* psMsg )
 }
 
 /*------------------------------------------------------------------------------
-**  Notification that the baud rate is updated.
-**
-**  This function is a part of a command sequence. See description of
-**  ABCC_CmdSeqDoneHandler type in cmd_seq_if.h
-**------------------------------------------------------------------------------
-*/
-static void UpdateBaudRateDone( void )
-{
-   appl_fSetBaudRateInProgress = FALSE;
-}
-
-/*------------------------------------------------------------------------------
 **  Builds the command for setting the baud rate (set attribute).
 **
 **  This function is a part of a command sequence. See description of
@@ -601,13 +549,11 @@ APPL_AbccHandlerStatusType APPL_HandleAbcc( void )
 
       if( eModuleStatus == APPL_MODULE_NO_ERROR )
       {
-#if APP_OBJ_ENABLE
          if( APP_GetCandidateFwAvailable() == TRUE )
          {
             lStartupTimeMs = APPL_FW_UPGRADE_STARTUP_TIME_MS;
          }
          else
-#endif
          {
             /*
             ** Default time will be used
@@ -682,17 +628,12 @@ APPL_AbccHandlerStatusType APPL_HandleAbcc( void )
       ** End event handling.
       */
 
-#if SYNC_OBJ_ENABLE
-      if( SYNC_GetMode() == SYNC_MODE_NONSYNCHRONOUS )
-      {
-         ABCC_TriggerWrPdUpdate();
-      }
-#else
-      /*
-      ** Always update write process data
-      */
+      // if( SYNC_GetMode() == SYNC_MODE_NONSYNCHRONOUS )
+      // {
+      //    ABCC_TriggerWrPdUpdate();
+      // }
+
       ABCC_TriggerWrPdUpdate();
-#endif
 
       ABCC_RunDriver();
 
@@ -738,75 +679,6 @@ APPL_AbccHandlerStatusType APPL_HandleAbcc( void )
    }
 
    return( eModuleStatus );
-}
-
-void APPL_SetAddress( UINT8 bSwitchValue )
-{
-   appl_fSetAddr = TRUE;
-
-   if( appl_fSetAddrInProgress )
-   {
-      /*
-      ** Address updated next time
-      */
-      return;
-   }
-
-   if( appl_fUserInitDone == FALSE )
-   {
-      /*
-      ** HW switch 1 will the last octet in the IP address
-      ** for applicable networks ( 192.168.0.X )
-      */
-      appl_sIpSettings.sAddress.uValue.abValue[ 3 ] = bSwitchValue;
-
-      /*
-      ** Switch 1 is node address for applicable networks
-      */
-      appl_bNwNodeAddress = bSwitchValue;
-
-      /*
-      ** Indicate to application object that the address is set by HW switches
-      */
-   #if APP_OBJ_ENABLE
-      APP_HwConfAddress( TRUE );
-   #endif
-   }
-   else if( appl_bNwNodeAddress != bSwitchValue )
-   {
-     /*
-     ** Start command sequence to update address if the value has changed.
-     */
-     appl_sIpSettings.sAddress.uValue.abValue[ 3 ] = bSwitchValue;
-     appl_bNwNodeAddress = bSwitchValue;
-     appl_fSetAddrInProgress = TRUE;
-     ABCC_AddCmdSeq( appl_asAddressChangedCmdSeq, UpdateAddressDone );
-   }
-}
-
-void APPL_SetBaudrate( UINT8 bSwitchValue )
-{
-   if( appl_fSetBaudRateInProgress )
-   {
-      /*
-      ** Baud rate updated next time
-      */
-      return;
-   }
-
-   if( appl_fUserInitDone == FALSE )
-   {
-      appl_bNwBaudRate = bSwitchValue;
-   }
-   else if( appl_bNwBaudRate != bSwitchValue)
-   {
-      /*
-      ** Start command sequence to update baud rate if the value has changed.
-      */
-      appl_bNwBaudRate = bSwitchValue;
-      ABCC_AddCmdSeq( appl_asBaudRateChangedCmdSeq, UpdateBaudRateDone );
-   }
-   appl_fSetBaudRate = TRUE;
 }
 
 void APPL_UnexpectedError( void )
@@ -867,6 +739,7 @@ void ABCC_CbfNewReadPd( void* pxReadPd )
 
 void ABCC_CbfDriverError( ABCC_SeverityType eSeverity, ABCC_ErrorCodeType iErrorCode, UINT32 lAddInfo )
 {
+  ABCC_PORT_DebugPrint(("ABCC_CbfDriverError: eSeverity=%d, iErrorCode=%d\n, lAddInfo=%d", eSeverity, iErrorCode, lAddInfo));
    switch( eSeverity )
    {
       case ABCC_SEV_FATAL:
@@ -883,35 +756,41 @@ void ABCC_CbfDriverError( ABCC_SeverityType eSeverity, ABCC_ErrorCodeType iError
 
 void ABCC_CbfReceiveMsg( ABP_MsgType* psReceivedMsg )
 {
-   switch(ABCC_GetMsgDestObj(psReceivedMsg))
+    const int destObj = ABCC_GetMsgDestObj(psReceivedMsg);
+   switch(destObj)
    {
    case ABP_OBJ_NUM_COP:
+      ABCC_PORT_DebugPrint(("ABP_OBJ_NUM_COP\n"));
       COP_ProcessCmdMsg( psReceivedMsg );
       break;
 
    case ABP_OBJ_NUM_ETN:
+      ABCC_PORT_DebugPrint(("ABP_OBJ_NUM_ETN\n"));
       ETN_ProcessCmdMsg( psReceivedMsg );
       break;
 
    case ABP_OBJ_NUM_ECT:
+      ABCC_PORT_DebugPrint(("ABP_OBJ_NUM_ECT\n"));
       ECT_ProcessCmdMsg( psReceivedMsg );
       break;
 
    case ABP_OBJ_NUM_APPD:
+      ABCC_PORT_DebugPrint(("ABP_OBJ_NUM_APPD\n"));
       AD_ProcObjectRequest( psReceivedMsg );
       break;
 
    case ABP_OBJ_NUM_APP:
+      ABCC_PORT_DebugPrint(("ABP_OBJ_NUM_APP\n"));
       APP_ProcessCmdMsg( psReceivedMsg );
       break;
 
-#if SYNC_OBJ_ENABLE
    case ABP_OBJ_NUM_SYNC:
+      ABCC_PORT_DebugPrint(("ABP_OBJ_NUM_SYNC\n"));
       SYNC_ProcessCmdMsg( psReceivedMsg );
       break;
 
-#endif
    default:
+      ABCC_PORT_DebugPrint(("Unknown destObj: %d\n", destObj));
       /*
       ** We have received a command to an unsupported object.
       */
@@ -931,19 +810,17 @@ void ABCC_CbfWdTimeoutRecovered( void )
    ABCC_PORT_DebugPrint( ( "ABCC watchdog recovered" ) );
 }
 
-#if ABCC_CFG_SYNC_ENABLE
-void ABCC_CbfSyncIsr( void )
-{
-   /*
-   ** Call application specific handling of sync event
-   */
-   APPL_SyncIsr();
-}
-#endif
+// void ABCC_CbfSyncIsr( void )
+// {
+
+//    ** Call application specific handling of sync event
+
+//    APPL_SyncIsr();
+// }
 
 void ABCC_CbfEvent( UINT16 iEvents )
 {
-
+    ABCC_PORT_DebugPrint(("ABCC_CbfEvent: %d\n", iEvents));
    /*
    ** Set flag to indicate that an event has occurred and the corresponding
    ** ABCC_Trigger<event_action> must be called. In the sample code the the
@@ -1002,6 +879,7 @@ void ABCC_CbfAnbStateChanged( ABP_AnbStateType eNewAnbState )
    case ABP_ANB_STATE_ERROR:
 
       /* Trigger message sequence for reading exception data */
+      ABCC_AddCmdSeq( appl_asReadExeptionCmdSeq, NULL );
       break;
 
    default:
@@ -1017,56 +895,12 @@ void ABCC_CbfUserInitReq( void )
 
    iModuleType = ABCC_ModuleType();
    iNetworkType = ABCC_NetworkType();
+   ABCC_PORT_DebugPrint(("iModuleType=%d, iNetworkType=%d\n", iModuleType, iNetworkType));
+   assert(iModuleType == ABP_MODULE_TYPE_ABCC_40);
+   assert(iNetworkType == ABP_NW_TYPE_ECT);
 
-   if( ( iNetworkType == ABP_NW_TYPE_DEV ) ||
-       ( iNetworkType == ABP_NW_TYPE_PDPV0 ) ||
-       ( iNetworkType == ABP_NW_TYPE_PDPV1 ) ||
-       ( iNetworkType == ABP_NW_TYPE_COP ) ||
-       ( iNetworkType == ABP_NW_TYPE_CNT ) ||
-       ( iNetworkType == ABP_NW_TYPE_CCL ) ||
-       ( iNetworkType == ABP_NW_TYPE_CFN ) ||
-       ( iNetworkType == ABP_NW_TYPE_CPN ) ||
-       ( iNetworkType == ABP_NW_TYPE_ECT ) ||
-       ( iNetworkType == ABP_NW_TYPE_EPL ) )
-   {
-      appl_fNwSupportsNodeId = TRUE;
-   }
-   else
-   {
-      appl_fNwSupportsNodeId = FALSE;
-   }
+   appl_fNwSupportsNodeId = TRUE;
 
-   if( ( iNetworkType == ABP_NW_TYPE_DEV ) ||
-       ( iNetworkType == ABP_NW_TYPE_COP ) ||
-       ( iNetworkType == ABP_NW_TYPE_CCL ) )
-   {
-      appl_fNwSupportsBaudRate = TRUE;
-   }
-   else
-   {
-      appl_fNwSupportsBaudRate = FALSE;
-   }
-
-   if( ( iNetworkType == ABP_NW_TYPE_SRC3 ) && ( iModuleType == ABP_MODULE_TYPE_ABCC ) )
-   {
-      appl_sIpSettings.sAddress.iInstance = 4;
-      appl_sIpSettings.sNetmask.iInstance = 5;
-      appl_sIpSettings.sGateway.iInstance = 6;
-      appl_sIpSettings.sDhcp.iInstance = 7;
-   }
-   else if( ( iNetworkType == ABP_NW_TYPE_BIP ) && ( iModuleType == ABP_MODULE_TYPE_ABCC ) )
-   {
-      appl_sIpSettings.sAddress.iInstance = 6;
-      appl_sIpSettings.sNetmask.iInstance = 7;
-      appl_sIpSettings.sGateway.iInstance = 8;
-      appl_sIpSettings.sDhcp.iInstance = 9;
-   }
-   else
-   {
-      /*
-      ** Default vales from initialization (3,4,5,6)
-      */
-   }
    /*
    ** Start user init command sequence
    */

@@ -3,6 +3,7 @@
 #include "tivaware/driverlib/sysctl.h"
 #include "tivaware/driverlib/interrupt.h"
 #include "tivaware/driverlib/gpio.h"
+#include "tivaware/driverlib/fpu.h"
 #include "tivaware/driverlib/pin_map.h"
 #include "tivaware/driverlib/ssi.h"
 #include "tivaware/driverlib/rom.h"
@@ -33,6 +34,7 @@ void initHardware()
 	clockHz = MAP_SysCtlClockGet();
 	assert(clockHz != 0);
 
+	// enable GPIO for UART0 module
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 	MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
@@ -47,6 +49,9 @@ void initHardware()
 
 	// configure SSI0: TI SSI mode, master, 1.25MHz and 13bits frame width
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
+
+	// enable FPU
+	MAP_FPUEnable();
 }
 
 //! Initializes IO UART channel

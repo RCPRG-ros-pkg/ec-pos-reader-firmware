@@ -19,10 +19,10 @@
 //! Enabled host objects
 #define ETN_OBJ_ENABLE                          TRUE // Ethernet
 #define APP_OBJ_ENABLE                          TRUE // Application
+#define SYNC_OBJ_ENABLE                         TRUE
 
 //! Disabled host objects
 #define SAFE_OBJ_ENABLE                         FALSE
-#define SYNC_OBJ_ENABLE                         FALSE
 #define OPCUA_OBJ_ENABLE                        FALSE
 
 #include "obj/abcc_adapt_obj_ect.h"

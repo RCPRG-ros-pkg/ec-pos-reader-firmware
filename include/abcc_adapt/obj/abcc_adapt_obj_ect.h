@@ -105,7 +105,7 @@
 /*
 ** Attribute 17: Enable EoE (BOOL - TRUE/FALSE)
 */
-#define ECT_IA_ENABLE_EOE_ENABLE                TRUE
+#define ECT_IA_ENABLE_EOE_ENABLE                FALSE
 #define ECT_IA_ENABLE_EOE_VALUE                 TRUE
 
 /*

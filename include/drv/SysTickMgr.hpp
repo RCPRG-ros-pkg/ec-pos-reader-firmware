@@ -7,7 +7,7 @@
 
 namespace drv {
 
-constexpr auto SysTickTimersMax = 1;
+constexpr auto SysTickTimersMax = 2;
 
 using SysTickMgr =
 	embxx::driver::TimerMgr<

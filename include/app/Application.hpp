@@ -1,9 +1,10 @@
 #pragma once
 
 #include "util/EventLoop.hpp"
+#include "dev/RTCDevice.hpp"
 #include "dev/SysTickDevice.hpp"
-#include "drv/SysTickMgr.hpp"
 #include "dev/SSIMasterDevice.hpp"
+#include "drv/SysTickMgr.hpp"
 #include "hohner/SMRS59.hpp"
 
 namespace app {
@@ -22,12 +23,24 @@ public:
 	void run();
 
 private:
+	void initializeABCC();
+
+	void handleABCC();
+
+	void resetABCC();
+
+	void runABCCTimer();
+
+	void runEncoderTimer();
+
 	void readEncoder();
 
 	util::EventLoop _eventLoop;
+	dev::RTCDevice _rtcDevice;
 	dev::SysTickDevice _sysTickDevice;
 	drv::SysTickMgr _sysTickMgr;
-	drv::SysTickMgr::Timer _timer;
+	drv::SysTickMgr::Timer _abccTimer;
+	drv::SysTickMgr::Timer _encoderTimer;
 	dev::SSIMasterDevice _ssiMasterDevice;
 	hohner::SMRS59 _smrs59;
 };

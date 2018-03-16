@@ -213,19 +213,15 @@ BOOL ABCC_SYS_ModuleDetect()
    return moduleDetected;
 }
 
-// void ABCC_SYS_SyncInterruptEnable()
-// {
-//    /*
-//    ** Implement according to abcc_sys_adapt.h
-//    */
-// }
+void ABCC_SYS_SyncInterruptEnable()
+{
+   GPIOIntEnable(GPIO_PORTA_BASE, MI0_SYNC_PIN);
+}
 
-// void ABCC_SYS_SyncInterruptDisable()
-// {
-//    /*
-//    ** Implement according to abcc_sys_adapt.h
-//    */
-// }
+void ABCC_SYS_SyncInterruptDisable()
+{
+   GPIOIntDisable(GPIO_PORTA_BASE, MI0_SYNC_PIN);
+}
 
 //! Enables interrupt from IRQ pin
 void ABCC_SYS_AbccInterruptEnable()

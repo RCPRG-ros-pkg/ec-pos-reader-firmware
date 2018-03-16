@@ -128,10 +128,10 @@ static UINT32 appl_lSyncInput;
 ********************************************************************************
 */
 
-/*------------------------------------------------------------------------------
-**  32 bit input/output.
-**------------------------------------------------------------------------------
-*/
+// ------------------------------------------------------------------------------
+// **  32 bit input/output.
+// **------------------------------------------------------------------------------
+
 const AD_AdiEntryType APPL_asAdiEntryList[] =
 {
    { 50,  "SyncOutput",   ABP_UINT32,   1, APPL_READ_MAP_WRITE_ACCESS_DESC,  { { &appl_lPendingOutput, NULL } } },
@@ -213,6 +213,7 @@ static void triggerAdiSyncInputCapture( void )
 
 void APPL_SyncIsr( void )
 {
+   ABCC_PORT_DebugPrint(("SYNC ISR\n"));
    /*
    ** This is the the start of the sync cycle. This point is as close to the
    ** SYNC Input Capture Point as this example gets. The measurement pin for
@@ -272,8 +273,6 @@ void APPL_SyncIsr( void )
    */
    triggerAdiSyncInputCapture();
 }
-
-
 
 UINT16 APPL_GetNumAdi( void )
 {

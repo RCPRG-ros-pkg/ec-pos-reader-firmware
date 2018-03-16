@@ -33,9 +33,9 @@
 */
 
 #include "appl_adi_config.h"
+#include "abcc.h"
 
 #if ( APPL_ACTIVE_ADI_SETUP == APPL_ADI_SETUP_ALL_TYPES )
-
 #if ( !ABCC_CFG_STRUCT_DATA_TYPE || ABCC_CFG_ADI_GET_SET_CALLBACK )
    #error ABCC_CFG_ADI_GET_SET_CALLBACK must be set to FALSE and ABCC_CFG_STRUCT_DATA_TYPE set to TRUE in order to run this example
 #endif

@@ -58,6 +58,7 @@
                                           ABP_APPD_DESCR_MAPPABLE_READ_PD )
 
 #define APPL_WRITE_MAP_READ_ACCESS_DESC ( ABP_APPD_DESCR_GET_ACCESS |          \
+   ABP_APPD_DESCR_SET_ACCESS | \
                                           ABP_APPD_DESCR_MAPPABLE_WRITE_PD )
 
 #define APPL_NOT_MAP_READ_ACCESS_DESC ( ABP_APPD_DESCR_GET_ACCESS )
@@ -81,6 +82,7 @@
 */
 static UINT16 appl_iSpeed;
 static UINT16 appl_iRefSpeed;
+static UINT16 appl_iDummy;
 
 /*------------------------------------------------------------------------------
 ** Min, max and default value for appl_aiUint16
@@ -99,8 +101,9 @@ static AD_UINT16Type appl_sUint16Prop = { { 0, 0xFFFF, 0 } };
 */
 const AD_AdiEntryType APPL_asAdiEntryList[] =
 {
-   {  0x1,  "SPEED",     ABP_UINT16,   1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &appl_iSpeed,    &appl_sUint16Prop } } },
-   {  0x2,  "REF_SPEED", ABP_UINT16,   1, APPL_READ_MAP_WRITE_ACCESS_DESC, { { &appl_iRefSpeed, &appl_sUint16Prop } } }
+   {  0x4040,  "SPEED",     ABP_UINT16,   1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &appl_iSpeed,    &appl_sUint16Prop } } },
+   {  0x4041,  "REF_SPEED", ABP_UINT16,   1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &appl_iRefSpeed, &appl_sUint16Prop } } },
+   {  0x4042,  "DUMMY",     ABP_UINT16,   1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &appl_iDummy, &appl_sUint16Prop } } }
 };
 
 /*------------------------------------------------------------------------------
@@ -111,10 +114,12 @@ const AD_AdiEntryType APPL_asAdiEntryList[] =
 */
 const AD_DefaultMapType APPL_asAdObjDefaultMap[] =
 {
-   { 1, PD_WRITE, AD_DEFAULT_MAP_ALL_ELEM, 0 },
-   { 2, PD_READ,  AD_DEFAULT_MAP_ALL_ELEM, 0 },
+   { 0x4040, PD_WRITE, AD_DEFAULT_MAP_ALL_ELEM, 0 },
+   { 0x4041, PD_READ,  AD_DEFAULT_MAP_ALL_ELEM, 0 },
+   { 0x4042, PD_READ,  AD_DEFAULT_MAP_ALL_ELEM, 0 },
    { AD_DEFAULT_MAP_END_ENTRY }
 };
+
 
 /*******************************************************************************
 ** Private Services
