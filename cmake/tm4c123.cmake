@@ -23,6 +23,7 @@ set(CMAKE_C_FLAGS "\
 -mfpu=fpv4-sp-d16 \
 -mthumb \
 -mfloat-abi=hard \
+-munaligned-access \
 -DPART_${MCU} \
 -DTARGET_IS_TM4C123_RA3"
 CACHE STRING "" FORCE)
@@ -34,6 +35,7 @@ set(CMAKE_CXX_FLAGS "\
 -mfpu=fpv4-sp-d16 \
 -mthumb \
 -mfloat-abi=hard \
+-munaligned-access \
 -DPART_${MCU} \
 -DTARGET_IS_TM4C123_RA3"
 CACHE STRING "" FORCE)

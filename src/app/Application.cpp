@@ -1,42 +1,23 @@
 #include "app/Application.hpp"
 
-#include "tivaware/inc/hw_memmap.h"
+#include "tivaware/driverlib/interrupt.h"
 #include "tivaware/utils/uartstdio.h"
-
-#include "abcc_td.h"
-#include "abcc.h"
-#include "abcc_sys_adapt.h"
-#include "ad_obj.h"
-#include "appl_abcc_handler.h"
-
-namespace {
-
-constexpr auto SSIMaster0BitRate = 1250000;
-constexpr auto SSIMaster0DataWidth = 13;
-constexpr auto ABCCTimerDelay = std::chrono::milliseconds(1);
-
-} // namespace
 
 namespace app {
 
 /**
  * @brief Constructor
- * @details Initializes ABCC module
+ * @details
  */
 Application::Application()
-	:	_rtcDevice(),
-		_sysTickMgr(_sysTickDevice, _eventLoop),
-		_abccTimer(_sysTickMgr.allocTimer()),
-		_encoderTimer(_sysTickMgr.allocTimer()),
-		_ssiMasterDevice(SSI0_BASE, SSIMaster0BitRate, SSIMaster0DataWidth),
-		_smrs59(_ssiMasterDevice)
+	:	_sysTickDriver(_sysTickDevice, _eventLoop),
+		_blinker(_sysTickDriver, _gpioFDevice),
+		_encoders(_sysTickDriver),
+		_etherCAT(_eventLoop, _sysTickDriver)
 {
-	assert(_abccTimer.isValid());
-	assert(_encoderTimer.isValid());
+	UARTprintf("[Application] preinitialized\n");
 
-	// initializeABCC();
-
-	UARTprintf("Application initialized\n");
+	assert(_state == State::Init);
 }
 
 /**
@@ -55,107 +36,171 @@ Application::~Application()
 void
 Application::run()
 {
-	// runEncoderTimer();
-	// runABCCTimer();
+	assert(_state == State::Init);
+	UARTprintf("[Application] starting...\n");
 
-	IntMasterEnable();
 	while(1)
 	{
-		_eventLoop.runOnce();
+		switch(_state)
+		{
+			case State::Init:
+				runInit();
+				break;
 
-		using seconds = std::chrono::seconds;
-		using subseconds = std::chrono::duration<float, std::ratio<1, 32768>>;
-		using nanoseconds = std::chrono::nanoseconds;
+			case State::Operational:
+				runOperational();
+				break;
 
-		const auto secondsNow = seconds(_rtcDevice.getSeconds());
-		const auto subsecondsNow = subseconds(_rtcDevice.getSubSeconds());
-		const auto nanosecondsNow = std::chrono::duration_cast<nanoseconds>(subsecondsNow);
-		// const auto total = secondsNow + subsecondsNow;
-		// const float subSecondsScaled = subSecondsInv * 1000000000;
-
-		UARTprintf("nanoseconds: %d\n", nanosecondsNow.count());
-
-		// handleABCC();
+			default:
+				assert(_state == State::Error);
+				runError();
+				break;
+		}
 	}
+
+	UARTprintf("[Application] exits\n");
 }
 
 void
-Application::initializeABCC()
+Application::runInit()
 {
-	UARTprintf("Initializing ABCC hardware...\n");
-	if(ABCC_HwInit() != ABCC_EC_NO_ERROR)
-	{
-		UARTprintf("Error during ABCC_HwInit.\n");
-		while(1);
-	}
+	assert(_state == State::Init);
 
-	UARTprintf("ABCC initialized\n");
+	UARTprintf("[Application] entering INIT state...\n");
+
+	_blinker.signalInit();
+	_etherCAT.initialize(
+		[this](auto status)
+		{
+			if(status != ethercat::Status::Success)
+			{
+				UARTprintf("[Application] INIT error : %d\n",
+					static_cast<int>(status));
+				_state = State::Error;
+			}
+			else
+			{
+				UARTprintf("[Application] INIT success\n");
+				_state = State::Operational;
+			}
+
+			_eventLoop.stop();
+		});
+
+	handleEvents();
+	assert(_state == State::Operational || _state == State::Error);
+
+	UARTprintf("[Application] INIT state ends\n");
 }
 
 void
-Application::handleABCC()
+Application::runOperational()
 {
-	const auto abccHandlerStatus = APPL_HandleAbcc();
-	switch(abccHandlerStatus)
-	{
-	case APPL_MODULE_RESET:
-		resetABCC();
-		break;
-	default:
-		break;
-	}
+	assert(_state == State::Operational);
+
+	UARTprintf("[Application] entering OPERATIONAL state...\n");
+
+	_blinker.signalOperational();
+	_encoders.startReading();
+	_etherCAT.start(
+		[this](auto status)
+		{
+			UARTprintf("[Application] EtherCAT stopped, code: %d\n",
+				static_cast<int>(status));
+		});
+
+	handleEvents();
+	assert(!"Should not get here!");
+
+	UARTprintf("[Application] OPERATIONAL state ends\n");
 }
 
 void
-Application::resetABCC()
+Application::runError()
 {
-	UARTprintf("resetABCC!\n");
+	assert(_state == State::Error);
+
+	UARTprintf("[Application] entering ERROR state\n");
+
+	_blinker.signalError();
+
 	while(1);
+	assert(!"Should not get here!");
+
+	UARTprintf("[Application] exiting ERROR state\n");
 }
 
-void
-Application::runABCCTimer()
+void Application::handleEvents()
 {
-	assert(_abccTimer.isValid());
-	_abccTimer.asyncWait(ABCCTimerDelay,
-		[this](const auto errorStatus)
-		{
-			if(errorStatus)
-			{
-				UARTprintf("Error occured during wait, code=%d\n",
-					static_cast<int>(errorStatus.code()));
-				return;
-			}
+	// enter event handling loop. It exits after call to EventLoop::stop()
+	IntMasterEnable();
+	_eventLoop.run();
+	IntMasterDisable();
 
-			runABCCTimer();
-			ABCC_RunTimerSystem(ABCCTimerDelay.count());
-		});
+	// Restore state of EventLoop, because stop() was called
+	_eventLoop.reset();
 }
 
-void
-Application::runEncoderTimer()
-{
-	assert(_encoderTimer.isValid());
-	_encoderTimer.asyncWait(std::chrono::milliseconds(100),
-		[this](const auto errorStatus)
-		{
-			if(errorStatus)
-			{
-				UARTprintf("Error occured during wait. code=%d\n",
-					static_cast<int>(errorStatus.code()));
-				return;
-			}
+// void
+// Application::handleABCC()
+// {
+// 	const auto abccHandlerStatus = APPL_HandleAbcc();
+// 	switch(abccHandlerStatus)
+// 	{
+// 	case APPL_MODULE_RESET:
+// 		resetABCC();
+// 		break;
+// 	default:
+// 		break;
+// 	}
+// }
 
-			runEncoderTimer();
-			readEncoder();
-		});
-}
+// void
+// Application::resetABCC()
+// {
+// 	UARTprintf("resetABCC!\n");
+// 	while(1);
+// }
 
-void
-Application::readEncoder()
-{
-	const auto position = _smrs59.readPosition();
-	UARTprintf("Encoder position: %d\n", position.value());
-}
+// void
+// Application::runABCCTimer()
+// {
+// 	assert(_abccTimer.isValid());
+// 	_abccTimer.asyncWait(ABCCTimerDelay,
+// 		[this](const auto errorStatus)
+// 		{
+// 			if(errorStatus)
+// 			{
+// 				UARTprintf("Error occured during wait, code=%d\n",
+// 					static_cast<int>(errorStatus.code()));
+// 				return;
+// 			}
+
+// 			runABCCTimer();
+// 			ABCC_RunTimerSystem(ABCCTimerDelay.count());
+// 		});
+// }
 
 } // namespace app
+
+
+// namespace {
+
+// constexpr auto ABCCTimerDelay = std::chrono::milliseconds(1);
+
+// hohner::SMRS59* smrs59 = nullptr;
+// _ssiMasterDevice(SSI0_BASE, SSIMaster0BitRate, SSIMaster0DataWidth),
+
+		// _abccTimer(_sysTickDriver.allocTimer()),
+		// _encoderTimer(_sysTickDriver.allocTimer()),
+		// _smrs59(_ssiMasterDevice)
+	// assert(_abccTimer.isValid());
+	// assert(_encoderTimer.isValid());
+	// initializeABCC();
+
+	// smrs59 = &_smrs59;
+		// runEncoderTimer();
+	// runABCCTimer();
+		// handleABCC();
+
+// } // namespace

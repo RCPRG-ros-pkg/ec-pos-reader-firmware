@@ -18,5 +18,5 @@ set_target_properties(etl PROPERTIES
 	CXX_STANDARD 17
 	CXX_EXTENSIONS OFF
 	LINK_FLAGS "-Wl,--gc-sections"
-	COMPILE_FLAGS "-Wall -Werror -Wextra -ffunction-sections -fno-exceptions -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables"
+	COMPILE_FLAGS "-Wall -Werror -Wextra -ffunction-sections -fno-exceptions -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-threadsafe-statics"
 )

@@ -1,11 +1,16 @@
 #pragma once
 
-#include "util/EventLoop.hpp"
-#include "dev/RTCDevice.hpp"
-#include "dev/SysTickDevice.hpp"
-#include "dev/SSIMasterDevice.hpp"
-#include "drv/SysTickMgr.hpp"
-#include "hohner/SMRS59.hpp"
+#include "app/common/EventLoop.hpp"
+#include "app/common/SysTickDevice.hpp"
+#include "app/common/SysTickDriver.hpp"
+
+#include "device/GPIO.hpp"
+
+#include "app/blinker/Blinker.hpp"
+#include "app/encoders/Encoders.hpp"
+#include "app/ethercat/EtherCAT.hpp"
+
+#include "embxx/error/ErrorStatus.h"
 
 namespace app {
 
@@ -13,36 +18,64 @@ namespace app {
 class Application
 {
 public:
+	static Application& instance()
+	{
+		static Application instance;
+		return instance;
+	}
+
+	//! Starts main loop of application
+	void run();
+
+private:
+	using ErrorStatus = embxx::error::ErrorStatus;
+	using ErrorCode = ErrorStatus::ErrorCodeType;
+
+	enum class State
+	{
+		Init,
+		PreOperational,
+		Operational,
+		Error
+	};
+
 	//! Constructor
 	Application();
 
 	//! Destructor
 	~Application();
 
-	//! Starts main loop of application
-	void run();
+	//! Does work for initialization state
+	void runInit();
 
-private:
-	void initializeABCC();
+	//! Does work for pre-operational state
+	void runPreOperational();
 
-	void handleABCC();
+	//! Does work for operational state
+	void runOperational();
 
-	void resetABCC();
+	//! Does work for error state
+	void runError();
 
-	void runABCCTimer();
+	//! Executes eventLoop.run() until it is stopped by _eventLoop.stop()
+	void handleEvents();
 
-	void runEncoderTimer();
+	// common
+	common::EventLoop _eventLoop;
 
-	void readEncoder();
+	// devices
+	common::SysTickDevice _sysTickDevice;
+	device::GPIOF _gpioFDevice;
 
-	util::EventLoop _eventLoop;
-	dev::RTCDevice _rtcDevice;
-	dev::SysTickDevice _sysTickDevice;
-	drv::SysTickMgr _sysTickMgr;
-	drv::SysTickMgr::Timer _abccTimer;
-	drv::SysTickMgr::Timer _encoderTimer;
-	dev::SSIMasterDevice _ssiMasterDevice;
-	hohner::SMRS59 _smrs59;
+	// drivers
+	common::SysTickDriver _sysTickDriver;
+
+	// modules
+	blinker::Blinker _blinker;
+	encoders::Encoders _encoders;
+	ethercat::EtherCAT _etherCAT;
+
+	State _state = State::Init;
 };
 
 } // namespace app

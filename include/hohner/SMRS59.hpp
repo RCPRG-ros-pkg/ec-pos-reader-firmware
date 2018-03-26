@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dev/SSIMasterDevice.hpp"
+#include "binary.h" // ETLCPP
 
 #include "hohner/Position.hpp"
 
@@ -10,23 +10,36 @@ namespace hohner {
  * @brief Hohner's Rotary Encoder class, SMRS59 series
  * @details
  */
+template<typename TSSIMasterDevice, std::size_t Resolution>
 class SMRS59
 {
 public:
-	//! Resolution at which works the encoder. Also frame width in SSI.
-	static constexpr std::size_t Resolution = 13;
-
-	//! Miximum bit rate, with which encoder can work.
-	static constexpr int MaxBitRate = 1500000;
-
 	//! Constructor
-	SMRS59(dev::SSIMasterDevice& ssiMasterDevice);
+	SMRS59(TSSIMasterDevice& ssiMasterDevice)
+		:	_ssiMasterDevice(ssiMasterDevice)
+	{
+
+	}
 
 	//! Reads encoder position value. Blocking call.
-	Position readPosition();
+	Position readPosition()
+	{
+		// read one frame from device
+		assert(!_ssiMasterDevice.isBusy());
+		auto data = _ssiMasterDevice.read();
+
+		// clear unused bits
+		assert(_ssiMasterDevice.getFrameWidth() == Resolution);
+		data &= ((1 << Resolution) - 1);
+
+		// convert from gray code to binary
+		const auto value = etl::gray_to_binary(data);
+
+		return Position(value);
+	}
 
 private:
-	dev::SSIMasterDevice& _ssiMasterDevice;
+	TSSIMasterDevice& _ssiMasterDevice;
 };
 
 } // namespace hohner

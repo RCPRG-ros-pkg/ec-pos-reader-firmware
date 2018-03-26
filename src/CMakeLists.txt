@@ -38,12 +38,9 @@ set(CMAKE_EXE_LINKER_FLAGS "\
 -Wl,-T ${LD_SCRIPT} \
 ")
 
-add_subdirectory(abcc_adapt)
-add_subdirectory(abcc_drv)
-add_subdirectory(abcc_obj)
 add_subdirectory(app)
-add_subdirectory(appl)
-add_subdirectory(dev)
+add_subdirectory(component)
+add_subdirectory(device)
 add_subdirectory(hohner)
 add_subdirectory(util)
 

@@ -9,7 +9,7 @@ class Position
 public:
 	using ValueType = int;
 
-	explicit constexpr Position(ValueType value)
+	explicit constexpr Position(ValueType value = 0)
 		:	_value(value)
 	{}
 
@@ -34,7 +34,7 @@ public:
 	}
 
 private:
-	const ValueType _value;
+	ValueType _value;
 };
 
 } // namespace hohner

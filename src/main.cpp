@@ -8,6 +8,6 @@
 
 int main()
 {
-	app::Application application;
+	auto& application = app::Application::instance();
 	application.run();
 }
