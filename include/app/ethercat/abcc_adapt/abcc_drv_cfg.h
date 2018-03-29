@@ -20,10 +20,10 @@
 #define ABCC_CFG_SPI_MSG_FRAG_LEN                  (32)
 
 //! Enable module ID checking from MI0 and MI1 pins
-#define ABCC_CFG_MODULE_ID_PINS_CONN               (TRUE)
+#define ABCC_CFG_MODULE_ID_PINS_CONN               (FALSE)
 
 //! Enable module detection checking from MD0 pin
-#define ABCC_CFG_MOD_DETECT_PINS_CONN              (TRUE)
+#define ABCC_CFG_MOD_DETECT_PINS_CONN              (FALSE)
 
 //! Configure message handling internals
 #define ABCC_CFG_MAX_NUM_APPL_CMDS                 (2)

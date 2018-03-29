@@ -36,11 +36,11 @@ void initHardware()
 	// Configure GPIO of pins of SSI0 module. Pull-up SSI0CLK pin
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 	MAP_GPIOPinConfigure(GPIO_PA2_SSI0CLK);
-	MAP_GPIOPinConfigure(GPIO_PA3_SSI0FSS);
+	// MAP_GPIOPinConfigure(GPIO_PA3_SSI0FSS);
 	MAP_GPIOPinConfigure(GPIO_PA4_SSI0RX);
-	MAP_GPIOPinConfigure(GPIO_PA5_SSI0TX);
+	// MAP_GPIOPinConfigure(GPIO_PA5_SSI0TX);
 	MAP_GPIOPinTypeSSI(GPIO_PORTA_BASE,
-		GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5);
+		GPIO_PIN_2 | /*GPIO_PIN_3 |*/ GPIO_PIN_4 /*| GPIO_PIN_5*/);
 }
 
 //! Initializes IO UART channel

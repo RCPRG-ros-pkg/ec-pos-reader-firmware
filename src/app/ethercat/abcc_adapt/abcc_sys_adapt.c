@@ -22,11 +22,11 @@
 #include "tivaware/driverlib/rom_map.h"
 #include "tivaware/utils/uartstdio.h"
 
-#define MD0_PIN      GPIO_PIN_1
+// #define MD0_PIN      GPIO_PIN_1
+#define IRQ_PIN      GPIO_PIN_1
 #define RESET_PIN    GPIO_PIN_2
-#define IRQ_PIN      GPIO_PIN_6
-#define MI0_SYNC_PIN GPIO_PIN_7
-#define MI1_PIN      GPIO_PIN_3
+#define MI0_SYNC_PIN GPIO_PIN_3
+// #define MI1_PIN      GPIO_PIN_3
 
 //! Callback function used to inform ABCC about received MISO frame
 static ABCC_SYS_SpiDataReceivedCbfType spiDataReceivedCb = 0;
@@ -35,33 +35,33 @@ static ABCC_SYS_SpiDataReceivedCbfType spiDataReceivedCb = 0;
 __attribute__((aligned(1024)))
 static uint8_t dmaControlTable[1024];
 
-//! uDMA SSI2RX channel number
-#define SSI2RX_CH 12
+//! uDMA SSI1RX channel number
+#define SSI1RX_CH 24
 
-//! uDMA SSI2RX channel number mask
-#define SSI2RX_CH_M (1 << SSI2RX_CH)
+//! uDMA SSI1RX channel number mask
+#define SSI1RX_CH_M (1 << SSI1RX_CH)
 
-//! uDMA SSI2RX channel asignment
-#define SSI2RX_ASGN UDMA_CH12_SSI2RX
+//! uDMA SSI1RX channel asignment
+#define SSI1RX_ASGN UDMA_CH24_SSI1RX
 
-//! uDMA SSI2TX channel number
-#define SSI2TX_CH 13
+//! uDMA SSI1TX channel number
+#define SSI1TX_CH 25
 
-//! uDMA SSI2TX channel number mask
-#define SSI2TX_CH_M (1 << SSI2TX_CH)
+//! uDMA SSI1TX channel number mask
+#define SSI1TX_CH_M (1 << SSI1TX_CH)
 
-//! uDMA SSI2TX channel asignment
-#define SSI2TX_ASGN UDMA_CH13_SSI2TX
+//! uDMA SSI1TX channel asignment
+#define SSI1TX_ASGN UDMA_CH25_SSI1TX
 
-//! Interrupt Service Routine for Port A.
+//! Interrupt Service Routine for Port E.
 //! Handles interrupts from IRQ and MI0/SYNC pins
-void portA_ISR()
+void portE_ISR()
 {
-   int maskedStatus = GPIOIntStatus(GPIO_PORTA_BASE, true);
+   int maskedStatus = GPIOIntStatus(GPIO_PORTE_BASE, true);
    // UARTprintf("Interrupt occured, status=%x\n", maskedStatus);
    assert(maskedStatus & (IRQ_PIN | MI0_SYNC_PIN)); // valid interrupt occured
 
-   GPIOIntClear(GPIO_PORTA_BASE, IRQ_PIN | MI0_SYNC_PIN);
+   GPIOIntClear(GPIO_PORTE_BASE, IRQ_PIN | MI0_SYNC_PIN);
 
    if(maskedStatus & MI0_SYNC_PIN)
    {
@@ -75,37 +75,37 @@ void portA_ISR()
    }
 }
 
-//! Interrupt Service Routine for SSI2
+//! Interrupt Service Routine for SSI1
 //! It will be invoked, when DMA has finished either TX or RX.
 //! When RX has been finished, `spiDataReceivedCb` will be called.
-void ssi2_ISR()
+void ssi1_ISR()
 {
-   assert(SSIIntStatus(SSI2_BASE, true) == 0); // only DMA interrupts allowed
+   assert(SSIIntStatus(SSI1_BASE, true) == 0); // only DMA interrupts allowed
    uint32_t dmaIntStatus = uDMAIntStatus();
-   assert(dmaIntStatus & (SSI2RX_CH_M | SSI2TX_CH_M)); // valid DMA interrupt occur
+   assert(dmaIntStatus & (SSI1RX_CH_M | SSI1TX_CH_M)); // valid DMA interrupt occur
 
    uint32_t dmaIntClearMask = 0;
 
-   if(dmaIntStatus & SSI2RX_CH_M)
+   if(dmaIntStatus & SSI1RX_CH_M)
    {
       // DMA SSIRX transfer completed. Invoke the callback to the ABCC
       assert(spiDataReceivedCb);
       spiDataReceivedCb();
-      dmaIntClearMask |= SSI2RX_CH_M;
+      dmaIntClearMask |= SSI1RX_CH_M;
    }
 
-   if(dmaIntStatus & SSI2TX_CH_M)
+   if(dmaIntStatus & SSI1TX_CH_M)
    {
       // DMA SSITX transfer completed. Just clear the interrupt flag
-      dmaIntClearMask |= SSI2TX_CH_M;
+      dmaIntClearMask |= SSI1TX_CH_M;
    }
 
-   if(dmaIntClearMask == (SSI2TX_CH_M | SSI2RX_CH_M))
+   if(dmaIntClearMask == (SSI1TX_CH_M | SSI1RX_CH_M))
    {
       // If SSIRX transfer was completed right after SSITX, and during handling
       // interrupt of SSITX, we need to clear pending interrupt of SSIRX,
       // because it is arleady handled
-      IntPendClear(INT_SSI2);
+      IntPendClear(INT_SSI1);
    }
 
    assert(dmaIntClearMask);
@@ -117,65 +117,65 @@ void ssi2_ISR()
 BOOL ABCC_SYS_HwInit()
 {
    // Enable GPIOs peripherals clocks
-   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
    // Configure Reset pin as output
-   MAP_GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, RESET_PIN);
+   MAP_GPIOPinTypeGPIOOutput(GPIO_PORTE_BASE, RESET_PIN);
 
-   // Configure Module detection pin 0 as input
-   MAP_GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, MD0_PIN);
+   // // Configure Module detection pin 0 as input
+   // MAP_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, MD0_PIN);
 
    // Configure IRQ pin to be interrupt driven input
-   MAP_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, IRQ_PIN);
-   MAP_GPIOIntTypeSet(GPIO_PORTA_BASE, IRQ_PIN, GPIO_FALLING_EDGE);
+   MAP_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, IRQ_PIN);
+   MAP_GPIOIntTypeSet(GPIO_PORTE_BASE, IRQ_PIN, GPIO_FALLING_EDGE);
 
-   // Configure MI1 pin as input
-   MAP_GPIOPinTypeGPIOInput(GPIO_PORTB_BASE, MI1_PIN);
+   // // Configure MI1 pin as input
+   // MAP_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, MI1_PIN);
 
    // Configure MI0/Sync pin to be interrupt driven input
-   MAP_GPIOPinTypeGPIOInput(GPIO_PORTA_BASE, MI0_SYNC_PIN);
-   MAP_GPIOIntTypeSet(GPIO_PORTA_BASE, MI0_SYNC_PIN, GPIO_RISING_EDGE);
+   MAP_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, MI0_SYNC_PIN);
+   MAP_GPIOIntTypeSet(GPIO_PORTE_BASE, MI0_SYNC_PIN, GPIO_RISING_EDGE);
 
-   // Register interrupts for Port A
-   GPIOIntRegister(GPIO_PORTA_BASE, portA_ISR);
+   // Register interrupts for Port E
+   GPIOIntRegister(GPIO_PORTE_BASE, portE_ISR);
 
    // Enable uDMA and configure its control table
    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_UDMA);
    MAP_uDMAEnable();
    MAP_uDMAControlBaseSet(dmaControlTable);
 
-   // Configure SSI2RX uDMA channel:
-   // - Source address fixed (SSI2RX FIFO)
+   // Configure SSI1RX uDMA channel:
+   // - Source address fixed (SSI1RX FIFO)
    // - Destination address increments by byte (MISO frame)
-   MAP_uDMAChannelControlSet(SSI2RX_CH | UDMA_PRI_SELECT,
+   MAP_uDMAChannelControlSet(SSI1RX_CH | UDMA_PRI_SELECT,
       UDMA_SIZE_8 | UDMA_SRC_INC_NONE | UDMA_DST_INC_8 | UDMA_ARB_4);
-   MAP_uDMAChannelAssign(SSI2RX_ASGN);
-   MAP_uDMAChannelAttributeDisable(SSI2RX_CH, UDMA_ATTR_REQMASK);
+   MAP_uDMAChannelAssign(SSI1RX_ASGN);
+   MAP_uDMAChannelAttributeDisable(SSI1RX_CH, UDMA_ATTR_REQMASK);
 
-   // Configure SSI2TX uDMA channel:
+   // Configure SSI1TX uDMA channel:
    // - Source address increments by byte (MOSI frame)
-   // - Destination address fixed (SSI2TX FIFO)
-   MAP_uDMAChannelControlSet(SSI2TX_CH | UDMA_PRI_SELECT,
+   // - Destination address fixed (SSI1TX FIFO)
+   MAP_uDMAChannelControlSet(SSI1TX_CH | UDMA_PRI_SELECT,
       UDMA_SIZE_8 | UDMA_SRC_INC_8 | UDMA_DST_INC_NONE | UDMA_ARB_4);
-   MAP_uDMAChannelAssign(SSI2TX_ASGN);
-   MAP_uDMAChannelAttributeDisable(SSI2TX_CH, UDMA_ATTR_REQMASK);
+   MAP_uDMAChannelAssign(SSI1TX_ASGN);
+   MAP_uDMAChannelAttributeDisable(SSI1TX_CH, UDMA_ATTR_REQMASK);
 
-   // Configure GPIO of pins of SSI2 module.
-   MAP_GPIOPinTypeSSI(GPIO_PORTB_BASE,
-      GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
-   MAP_GPIOPinConfigure(GPIO_PB4_SSI2CLK);
-   MAP_GPIOPinConfigure(GPIO_PB5_SSI2FSS);
-   MAP_GPIOPinConfigure(GPIO_PB6_SSI2RX);
-   MAP_GPIOPinConfigure(GPIO_PB7_SSI2TX);
+   // Configure GPIO of pins of SSI1 module.
+   MAP_GPIOPinTypeSSI(GPIO_PORTD_BASE,
+      GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
+   MAP_GPIOPinConfigure(GPIO_PD0_SSI1CLK);
+   MAP_GPIOPinConfigure(GPIO_PD1_SSI1FSS);
+   MAP_GPIOPinConfigure(GPIO_PD2_SSI1RX);
+   MAP_GPIOPinConfigure(GPIO_PD3_SSI1TX);
 
-   // configure SSI2: SPI3 mode, master, 5MHz and 8bits frame width, DMA RX+TX
-   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
-   MAP_SSIConfigSetExpClk(SSI2_BASE, MAP_SysCtlClockGet(),
+   // configure SSI1: SPI3 mode, master, 5MHz and 8bits frame width, DMA RX+TX
+   MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI1);
+   MAP_SSIConfigSetExpClk(SSI1_BASE, MAP_SysCtlClockGet(),
       SSI_FRF_MOTO_MODE_3, SSI_MODE_MASTER, 12500000, 8);
-   MAP_SSIDMAEnable(SSI2_BASE, SSI_DMA_TX | SSI_DMA_RX);
-   SSIIntRegister(SSI2_BASE, ssi2_ISR);
-   SSIEnable(SSI2_BASE);
+   MAP_SSIDMAEnable(SSI1_BASE, SSI_DMA_TX | SSI_DMA_RX);
+   SSIIntRegister(SSI1_BASE, ssi1_ISR);
+   SSIEnable(SSI1_BASE);
 
    return true;
 }
@@ -195,56 +195,58 @@ void ABCC_SYS_Close()
 //! Sets Reset pin to LOW
 void ABCC_SYS_HWReset()
 {
-   GPIOPinWrite(GPIO_PORTB_BASE, RESET_PIN, 0);
+   GPIOPinWrite(GPIO_PORTE_BASE, RESET_PIN, 0);
 }
 
 //! Sets Reset pin to HIGH
 void ABCC_SYS_HWReleaseReset()
 {
-   GPIOPinWrite(GPIO_PORTB_BASE, RESET_PIN, RESET_PIN);
+   GPIOPinWrite(GPIO_PORTE_BASE, RESET_PIN, RESET_PIN);
 }
 
 //! Reads states of MI0 and MI1 pins and returns received Module ID
 UINT8 ABCC_SYS_ReadModuleId()
 {
-   const int mi0State = GPIOPinRead(GPIO_PORTA_BASE, MI0_SYNC_PIN);
-   const int mi1State = GPIOPinRead(GPIO_PORTB_BASE, MI1_PIN);
+// {
+//    const int mi0State = GPIOPinRead(GPIO_PORTE_BASE, MI0_SYNC_PIN);
+//    const int mi1State = GPIOPinRead(GPIO_PORTE_BASE, MI1_PIN);
 
-   int result = (mi0State ? 0x1 : 0) | (mi1State ? 0x2 : 0);
-   return result;
+//    int result = (mi0State ? 0x1 : 0) | (mi1State ? 0x2 : 0);
+   return 0x2;
 }
 
 //! Performs module detection, by checking MD0 pin
 //! If it is LOW, then module is available, otherwise not.
 BOOL ABCC_SYS_ModuleDetect()
 {
-   const int md0State = GPIOPinRead(GPIO_PORTB_BASE, MD0_PIN);
-   const bool moduleDetected = (md0State ? false : true);
-   return moduleDetected;
+   // const int md0State = GPIOPinRead(GPIO_PORTE_BASE, MD0_PIN);
+   // const bool moduleDetected = (md0State ? false : true);
+   // return moduleDetected;
+   return true;
 }
 
 void ABCC_SYS_SyncInterruptEnable()
 {
    UARTprintf("Enabling SYNC interrupt\n");
-   GPIOIntEnable(GPIO_PORTA_BASE, MI0_SYNC_PIN);
+   GPIOIntEnable(GPIO_PORTE_BASE, MI0_SYNC_PIN);
 }
 
 void ABCC_SYS_SyncInterruptDisable()
 {
    UARTprintf("Disabling SYNC interrupt\n");
-   GPIOIntDisable(GPIO_PORTA_BASE, MI0_SYNC_PIN);
+   GPIOIntDisable(GPIO_PORTE_BASE, MI0_SYNC_PIN);
 }
 
 //! Enables interrupt from IRQ pin
 void ABCC_SYS_AbccInterruptEnable()
 {
-   GPIOIntEnable(GPIO_PORTA_BASE, IRQ_PIN);
+   GPIOIntEnable(GPIO_PORTE_BASE, IRQ_PIN);
 }
 
 //! Disables interrupt from IRQ pin
 void ABCC_SYS_AbccInterruptDisable()
 {
-   GPIOIntDisable(GPIO_PORTA_BASE, IRQ_PIN);
+   GPIOIntDisable(GPIO_PORTE_BASE, IRQ_PIN);
 }
 
 //! Registers callback to be called after MISO frame receive.
@@ -254,29 +256,29 @@ void ABCC_SYS_SpiRegDataReceived(ABCC_SYS_SpiDataReceivedCbfType pnDataReceived 
 }
 
 //! Sends MOSI frame and simultaneously receives MISO frame using DMA.
-//! At the end, SSI2/DMA ISR will invoke `spiDataReceivedCb` callback
+//! At the end, SSI1/DMA ISR will invoke `spiDataReceivedCb` callback
 void ABCC_SYS_SpiSendReceive(void* pxSendDataBuffer, void* pxReceiveDataBuffer, UINT16 iLength)
 {
    assert(iLength < 1024); // valid length to use DMA
-   assert(!SSIBusy(SSI2_BASE));
+   assert(!SSIBusy(SSI1_BASE));
 
    // Prepare SSIRX DMA channel buffers. Source=SSIRX, Destination=MISO frame
-   void* rxSrcBuffer = (void*)(SSI_O_DR + SSI2_BASE);
+   void* rxSrcBuffer = (void*)(SSI_O_DR + SSI1_BASE);
    void* rxDstBuffer = ((uint8_t*)(pxReceiveDataBuffer));
 
    // Configure SSIRX DMA channel to receive MISO frame
-   uDMAChannelTransferSet(SSI2RX_CH | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
+   uDMAChannelTransferSet(SSI1RX_CH | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
       rxSrcBuffer, rxDstBuffer, iLength);
 
    // Prepare SSITX DMA channel buffer. Source=MOSI frame, Destination=SSITX
    void* txSrcBuffer = ((uint8_t*)(pxSendDataBuffer));
-   void* txDstBuffer = (void*)(SSI_O_DR + SSI2_BASE);
+   void* txDstBuffer = (void*)(SSI_O_DR + SSI1_BASE);
 
    // Configure SSITX DMA channel to transmit MOSI frame
-   uDMAChannelTransferSet(SSI2TX_CH | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
+   uDMAChannelTransferSet(SSI1TX_CH | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
       txSrcBuffer, txDstBuffer, iLength);
 
    // Enable SSIRX and then SSITX DMA channels
-   uDMAChannelEnable(SSI2RX_CH);
-   uDMAChannelEnable(SSI2TX_CH);
+   uDMAChannelEnable(SSI1RX_CH);
+   uDMAChannelEnable(SSI1TX_CH);
 }

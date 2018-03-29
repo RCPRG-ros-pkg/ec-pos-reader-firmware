@@ -207,6 +207,7 @@ bool EtherCAT::detectModule()
 		const auto postSuccess = _eventLoop.post(
 			[this]() { _initCallback(Status::ModuleNotDetected); });
 		assert(postSuccess);
+		static_cast<void>(postSuccess);
 
 		return false;
 	}
@@ -232,6 +233,7 @@ bool EtherCAT::initApplicationDataObject()
 		const auto postSuccess = _eventLoop.post(
 			[this]() { _initCallback(Status::UnexpectedError); });
 		assert(postSuccess);
+		static_cast<void>(postSuccess);
 
 		return false;
 	}
@@ -256,6 +258,7 @@ bool EtherCAT::startABCCDriver()
 		const auto postSuccess = _eventLoop.post(
 			[this]() { _initCallback(Status::ModuleNotAnswering); });
 		assert(postSuccess);
+		static_cast<void>(postSuccess);
 
 		return false;
 	}
@@ -290,6 +293,7 @@ void EtherCAT::waitForCommunication()
 				const auto postSuccess = _eventLoop.post(
 					[this]() { _initCallback(Status::ModuleNotAnswering); });
 				assert(postSuccess);
+				static_cast<void>(postSuccess);
 
 				return;
 			}
@@ -300,6 +304,8 @@ void EtherCAT::waitForCommunication()
 			const auto postSuccess = _eventLoop.post(
 				[this]() { _initCallback(Status::Success); });
 			assert(postSuccess);
+			static_cast<void>(postSuccess);
+
 		});
 }
 
