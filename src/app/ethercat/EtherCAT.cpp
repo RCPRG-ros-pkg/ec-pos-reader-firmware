@@ -13,8 +13,8 @@ extern "C" {
 #include "ad_obj.h"
 #include "abcc_port.h"
 
-#include "ad_obj.h"         /* Application data object:   254                 */
-#include "app_obj.h"        /* Application object:        255                 */
+#include "ad_obj.h"
+#include "app_obj.h"
 #include "appl_abcc_handler.h"
 #include "abcc_port.h"
 #include "etn_obj.h"
@@ -28,17 +28,8 @@ extern "C" {
 #include "abcc_obj_cfg.h"
 
 }
-
-#define APPL_READ_MAP_READ_ACCESS_DESC ( ABP_APPD_DESCR_GET_ACCESS |           \
-                                         ABP_APPD_DESCR_MAPPABLE_READ_PD )
-#define APPL_READ_MAP_WRITE_ACCESS_DESC ( ABP_APPD_DESCR_GET_ACCESS |          \
-                                          ABP_APPD_DESCR_SET_ACCESS |          \
-                                          ABP_APPD_DESCR_MAPPABLE_READ_PD )
 #define APPL_WRITE_MAP_READ_ACCESS_DESC ( ABP_APPD_DESCR_GET_ACCESS |          \
                                           ABP_APPD_DESCR_MAPPABLE_WRITE_PD )
-#define APPL_NOT_MAP_READ_ACCESS_DESC ( ABP_APPD_DESCR_GET_ACCESS )
-#define APPL_NOT_MAP_WRITE_ACCESS_DESC ( ABP_APPD_DESCR_GET_ACCESS |           \
-                                         ABP_APPD_DESCR_SET_ACCESS )
 
 static ABCC_CmdSeqRespStatusType HandleExceptionResp(ABP_MsgType* msg);
 static ABCC_CmdSeqRespStatusType HandleExceptionInfoResp(ABP_MsgType* msg);
@@ -46,36 +37,29 @@ static ABCC_CmdSeqCmdStatusType ReadExeption(ABP_MsgType* msg);
 static ABCC_CmdSeqCmdStatusType ReadExeptionInfo(ABP_MsgType* msg);
 static void APPL_SyncIsr();
 
-static UINT32 appl_lPendingOutput;
 static UINT32 appl_lSyncInput;
 
 const AD_AdiEntryType APPL_asAdiEntryList[] =
 {
-   { 50, (char*)"SyncOutput", ABP_UINT32, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &appl_lPendingOutput, NULL } } },
    { 51, (char*)"SyncInput", ABP_UINT32, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &appl_lSyncInput, NULL } } },
 };
 
 const AD_DefaultMapType APPL_asAdObjDefaultMap[] =
 {
-   { 50, PD_READ,  AD_DEFAULT_MAP_ALL_ELEM, 0 },
    { 51, PD_WRITE, AD_DEFAULT_MAP_ALL_ELEM, 0 },
    { AD_DEFAULT_MAP_END_ENTRY }
 };
 
 static volatile ABP_AnbStateType anybusState = ABP_ANB_STATE_SETUP;
 
-static const ABCC_CmdSeqType appl_asReadExeptionCmdSeq[] =
-{
+constexpr std::array<ABCC_CmdSeqType, 3>
+appl_asReadExeptionCmdSeq = {{
    ABCC_CMD_SEQ( ReadExeption,     HandleExceptionResp ),
    ABCC_CMD_SEQ( ReadExeptionInfo, HandleExceptionInfoResp ),
    ABCC_CMD_SEQ_END()
-};
+}};
 
 static BOOL unexpectedError = FALSE;
-static volatile BOOL msgReceivedEvent = FALSE;
-static volatile BOOL readProcessDataReceivedEvent = FALSE;
-static volatile BOOL transmitMsgEvent = FALSE;
-static volatile BOOL abccStatusEvent = FALSE;
 
 namespace app {
 namespace ethercat {
@@ -155,30 +139,6 @@ EtherCAT::doStart()
 	_eventLoop.busyWait(
 		[]()
 		{
-			if(readProcessDataReceivedEvent)
-			{
-				readProcessDataReceivedEvent = FALSE;
-				ABCC_TriggerRdPdUpdate();
-			}
-
-			if(msgReceivedEvent)
-			{
-				msgReceivedEvent = FALSE;
-				ABCC_TriggerReceiveMessage();
-			}
-
-			if(transmitMsgEvent)
-			{
-				transmitMsgEvent = FALSE;
-				ABCC_TriggerTransmitMessage();
-			}
-
-			if(abccStatusEvent)
-			{
-				abccStatusEvent = FALSE;
-				ABCC_TriggerAnbStatusUpdate();
-			}
-
 			if(SYNC_GetMode() == SYNC_MODE_NONSYNCHRONOUS)
 			{
 				UARTprintf("SYNC_MODE_NONSYNCHRONOUS");
@@ -187,10 +147,11 @@ EtherCAT::doStart()
 
 			ABCC_RunDriver();
 
-			return false;
+			return false; // continue busy wait
 		},
 		[]()
 		{
+			assert(!"Should not get here");
 		});
 }
 
@@ -414,7 +375,7 @@ ABCC_CbfAnbStateChanged(ABP_AnbStateType newAnybusState)
 
 		case ABP_ANB_STATE_EXCEPTION:
 			/* Trigger message sequence for reading exception data */
-			ABCC_AddCmdSeq(appl_asReadExeptionCmdSeq, NULL);
+			ABCC_AddCmdSeq(&appl_asReadExeptionCmdSeq[0], NULL);
 			break;
 
 		case ABP_ANB_STATE_ERROR:
@@ -457,7 +418,9 @@ ABCC_CbfNewReadPd(void* readProcessData)
 void
 APPL_UnexpectedError()
 {
+	UARTprintf("[EtherCAT] unexpected error occured\n");
 	unexpectedError = TRUE;
+	assert(!"Not implemented");
 }
 
 void
@@ -513,29 +476,11 @@ ABCC_CbfSyncIsr()
 	APPL_SyncIsr();
 }
 
-void ABCC_CbfEvent( UINT16 iEvents )
+void
+ABCC_CbfEvent(UINT16 iEvents)
 {
-	UARTprintf("[EtherCAT] got event: %x\n", iEvents);
-
-	if(iEvents & ABCC_ISR_EVENT_RDPD)
-	{
-		readProcessDataReceivedEvent = TRUE;
-	}
-
-	if(iEvents & ABCC_ISR_EVENT_RDMSG)
-	{
-		msgReceivedEvent = TRUE;
-	}
-
-	if(iEvents & ABCC_ISR_EVENT_WRMSG)
-	{
-		transmitMsgEvent = TRUE;
-	}
-
-	if(iEvents & ABCC_ISR_EVENT_STATUS)
-	{
-		abccStatusEvent = TRUE;
-	}
+	// other values not acceptable in SPI mode with this driver
+	assert(iEvents == 0);
 }
 
 void
@@ -553,23 +498,13 @@ ABCC_CbfWdTimeoutRecovered()
 void
 APPL_Reset()
 {
-
+	UARTprintf("[EtherCAT] reset request!\n");
+	assert(!"Not implemented");
 }
 
 int readEncoder()
 {
    return 100;
-}
-
-static void triggerAdiSyncOutputValid( void )
-{
-   /*
-   **  Copy the pending output to the SyncOutput.
-   **  In a real case the appl_lSyncOutput is not variable but a function
-   **  controlling e.g. a motor.
-   */
-   // appl_lSyncOutput = appl_lPendingOutput;
-   // ABCC_PORT_DebugPrint(("Sync output: %d\n", appl_lSyncOutput));
 }
 
 static void
@@ -580,9 +515,7 @@ triggerAdiSyncInputCapture()
    **  appl_lSensorValue represent for example a measured speed.
    **
    */
-
    appl_lSyncInput = readEncoder();
-   // ABCC_PORT_DebugPrint(("appl_lSyncInput: %d\n", appl_lSyncInput));
 
    /*
    ** Always update the ABCC with the latest write process data at the end of
@@ -630,18 +563,6 @@ APPL_SyncIsr()
          return;
       }
    }
-
-   /*
-   ** PORTING ALERT!
-   ** The OutputValidTime attribute in the sync object defines the time in
-   ** nano seconds that shall be waited from this point before actuating the ADI
-   ** values to the synchronized output.
-   ** This means that a timer shall be started here and when it expires
-   ** triggerAdiSyncOutputValid() shall be called.
-   ** In this example the output valid time is ignored and the function is
-   ** called directly (OutputValidTime = 0).
-   */
-   triggerAdiSyncOutputValid();
 
    /*
    ** PORTING ALERT!

@@ -22,11 +22,9 @@
 #include "tivaware/driverlib/rom_map.h"
 #include "tivaware/utils/uartstdio.h"
 
-// #define MD0_PIN      GPIO_PIN_1
 #define IRQ_PIN      GPIO_PIN_1
 #define RESET_PIN    GPIO_PIN_2
 #define MI0_SYNC_PIN GPIO_PIN_3
-// #define MI1_PIN      GPIO_PIN_3
 
 //! Callback function used to inform ABCC about received MISO frame
 static ABCC_SYS_SpiDataReceivedCbfType spiDataReceivedCb = 0;
@@ -68,8 +66,9 @@ void portE_ISR()
       // UARTprintf("Sync interrupt\n");
       ABCC_CbfSyncIsr();
    }
-   else // (maskedStatus & IRQ_PIN)
+   else
    {
+      assert(maskedStatus & IRQ_PIN);
       // UARTprintf("IRQ interrupt\n");
       ABCC_ISR();
    }
@@ -123,15 +122,9 @@ BOOL ABCC_SYS_HwInit()
    // Configure Reset pin as output
    MAP_GPIOPinTypeGPIOOutput(GPIO_PORTE_BASE, RESET_PIN);
 
-   // // Configure Module detection pin 0 as input
-   // MAP_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, MD0_PIN);
-
    // Configure IRQ pin to be interrupt driven input
    MAP_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, IRQ_PIN);
    MAP_GPIOIntTypeSet(GPIO_PORTE_BASE, IRQ_PIN, GPIO_FALLING_EDGE);
-
-   // // Configure MI1 pin as input
-   // MAP_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, MI1_PIN);
 
    // Configure MI0/Sync pin to be interrupt driven input
    MAP_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, MI0_SYNC_PIN);
@@ -204,14 +197,9 @@ void ABCC_SYS_HWReleaseReset()
    GPIOPinWrite(GPIO_PORTE_BASE, RESET_PIN, RESET_PIN);
 }
 
-//! Reads states of MI0 and MI1 pins and returns received Module ID
+//! Module type is fixed: CC40
 UINT8 ABCC_SYS_ReadModuleId()
 {
-// {
-//    const int mi0State = GPIOPinRead(GPIO_PORTE_BASE, MI0_SYNC_PIN);
-//    const int mi1State = GPIOPinRead(GPIO_PORTE_BASE, MI1_PIN);
-
-//    int result = (mi0State ? 0x1 : 0) | (mi1State ? 0x2 : 0);
    return 0x2;
 }
 

@@ -38,8 +38,8 @@
 //! Enable interrupts from IRQ pin
 #define ABCC_CFG_POLL_ABCC_IRQ_PIN                 (FALSE)
 #define ABCC_CFG_INT_ENABLED                       (TRUE)
-// #define ABCC_CFG_INT_ENABLE_MASK_SPI            ()
-#define ABCC_CFG_HANDLE_INT_IN_ISR_MASK (0)
+// #define ABCC_CFG_INT_ENABLE_MASK_SPI            (ABP_INTMASK_RDPDIEN | ABP_INTMASK_RDMSGIEN | ABP_INTMASK_WRMSGIEN | ABP_INTMASK_STATUSIEN)
+// #define ABCC_CFG_HANDLE_INT_IN_ISR_MASK (0)
 
 //! Configure anybus watchdog to be called every 1 second
 #define ABCC_CFG_WD_TIMEOUT_MS                     (1000)
