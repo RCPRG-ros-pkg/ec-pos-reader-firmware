@@ -4,6 +4,7 @@
 #include "component/LED.hpp"
 
 #include "app/common/SysTickDriver.hpp"
+#include "app/ModuleState.hpp"
 
 namespace app {
 namespace blinker {
@@ -11,48 +12,65 @@ namespace blinker {
 class Blinker
 {
 public:
+	//! Constructor
 	Blinker(common::SysTickDriver& sysTickDriver,
 		device::GPIOF& gpioFDevice);
 
-	void signalInit();
+	//! Starts module
+	void start();
 
-	void signalOperational();
+	//! Stops module
+	void stop();
 
-	void signalError();
+	//! Checks, if module is in active state
+	bool isActive() const
+	{
+		return _moduleState == ModuleState::Active;
+	}
+
+	//! Checks, if module is in failed state
+	bool isFailed() const
+	{
+		return _moduleState == ModuleState::Error;
+	}
+
+	//! Checks, if module is in ready state
+	bool isReady() const
+	{
+		return _moduleState == ModuleState::Ready;
+	}
+
+	ModuleState getState() const
+	{
+		return _moduleState;
+	}
 
 private:
-	using ErrorStatus = embxx::error::ErrorStatus;
-	using ErrorCode = ErrorStatus::ErrorCodeType;
-
 	// devices
-	using RedLEDPin = device::GPIOF::Pin<1>;
-	using BlueLEDPin = device::GPIOF::Pin<2>;
-	using GreenLEDPin = device::GPIOF::Pin<3>;
+	using LEDPin = device::GPIOF::Pin<2>;
 
 	// drivers
 	using Timer = common::SysTickDriver::Timer;
 
 	// components
-	using RedLED = component::LED<RedLEDPin, component::LogicDesign::ActiveHigh>;
-	using BlueLED = component::LED<BlueLEDPin, component::LogicDesign::ActiveHigh>;
-	using GreenLED = component::LED<GreenLEDPin, component::LogicDesign::ActiveHigh>;
+	using LED = component::LED<LEDPin, component::LogicDesign::ActiveHigh>;
 
-	void toggleGreenLED();
+	void execWait();
+
+	void toggleLED();
 
 	// devices
-	RedLEDPin _redLEDPin;
-	BlueLEDPin _blueLEDPin;
-	GreenLEDPin _greenLEDPin;
+	LEDPin _ledPin;
 
 	// drivers
 	Timer _timer;
 
 	// components
-	RedLED _redLED;
-	BlueLED _blueLED;
-	GreenLED _greenLED;
+	LED _led;
 
-	bool _turnedOn = false;
+	// others
+	ModuleState _moduleState = ModuleState::Ready;
+	bool _running = false;
 };
 
 } // namespace blinker

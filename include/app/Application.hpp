@@ -6,6 +6,8 @@
 
 #include "device/GPIO.hpp"
 
+#include "component/LED.hpp"
+
 #include "app/blinker/Blinker.hpp"
 #include "app/encoders/Encoders.hpp"
 #include "app/ethercat/EtherCAT.hpp"
@@ -28,16 +30,17 @@ public:
 	void run();
 
 private:
+	// common stuff
 	using ErrorStatus = embxx::error::ErrorStatus;
 	using ErrorCode = ErrorStatus::ErrorCodeType;
 
-	enum class State
-	{
-		Init,
-		PreOperational,
-		Operational,
-		Error
-	};
+	// devices
+	using RedLEDPin = device::GPIOF::Pin<1>;
+	using GreenLEDPin = device::GPIOF::Pin<3>;
+
+	// components
+	using GreenLED = component::LED<GreenLEDPin, component::LogicDesign::ActiveHigh>;
+	using RedLED = component::LED<RedLEDPin, component::LogicDesign::ActiveHigh>;
 
 	//! Constructor
 	Application();
@@ -45,37 +48,35 @@ private:
 	//! Destructor
 	~Application();
 
-	//! Does work for initialization state
-	void runInit();
+	//! Starts modules
+	void start();
 
-	//! Does work for pre-operational state
-	void runPreOperational();
+	//! Stops modules
+	void stop();
 
-	//! Does work for operational state
-	void runOperational();
+	//! Halts whole application
+	void halt();
 
-	//! Does work for error state
-	void runError();
-
-	//! Executes eventLoop.run() until it is stopped by _eventLoop.stop()
-	void handleEvents();
-
-	// common
+	// commons
 	common::EventLoop _eventLoop;
 
 	// devices
 	common::SysTickDevice _sysTickDevice;
-	device::GPIOF _gpioFDevice;
+	device::GPIOF _gpiofDevice;
+	RedLEDPin _redLEDPin;
+	GreenLEDPin _greenLEDPin;
 
 	// drivers
 	common::SysTickDriver _sysTickDriver;
+
+	// components
+	RedLED _redLED;
+	GreenLED _greenLED;
 
 	// modules
 	blinker::Blinker _blinker;
 	encoders::Encoders _encoders;
 	ethercat::EtherCAT _etherCAT;
-
-	State _state = State::Init;
 };
 
 } // namespace app

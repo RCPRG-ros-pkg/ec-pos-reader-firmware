@@ -8,79 +8,93 @@ namespace blinker {
 
 Blinker::Blinker(common::SysTickDriver& sysTickDriver,
 	device::GPIOF& gpioFDevice)
-	:	_redLEDPin(gpioFDevice),
-		_blueLEDPin(gpioFDevice),
-		_greenLEDPin(gpioFDevice),
+	:	_ledPin(gpioFDevice),
 		_timer(sysTickDriver.allocTimer()),
-		_redLED(_redLEDPin),
-		_blueLED(_blueLEDPin),
-		_greenLED(_greenLEDPin)
+		_led(_ledPin)
 {
 	assert(_timer.isValid());
 
-	_redLEDPin.setAsDigitalOutput();
-	_blueLEDPin.setAsDigitalOutput();
-	_greenLEDPin.setAsDigitalOutput();
+	_ledPin.setAsDigitalOutput();
 
-	UARTprintf("[Blinker] initialized\n");
+	UARTprintf("[Blinker] ready\n");
+
+	assert(_led.isTurnedOff());
+	assert(_moduleState == ModuleState::Ready);
 }
 
-void Blinker::signalInit()
+void
+Blinker::start()
 {
-	UARTprintf("[Blinker] signalling init\n");
-
-	_blueLED.turnOn();
-}
-
-void Blinker::signalOperational()
-{
-	UARTprintf("[Blinker] signalling operational\n");
-
-	assert(_blueLED.isTurnedOn());
-	_blueLED.turnOff();
-
-	toggleGreenLED();
-}
-
-void Blinker::signalError()
-{
-	UARTprintf("[Blinker] signalling error\n");
-
-	_blueLED.turnOff();
-	_greenLED.turnOff();
-	_redLED.turnOn();
-}
-
-void Blinker::toggleGreenLED()
-{
-	if(_turnedOn)
+	if(_moduleState == ModuleState::Active)
 	{
-		_greenLED.turnOff();
-		_turnedOn = false;
+		return; // nothing to do
+	}
+
+	UARTprintf("[Blinker] starting...\n");
+
+	_moduleState = ModuleState::Active;
+	_running = true;
+	execWait();
+
+	UARTprintf("[Blinker] started\n");
+	assert(_running);
+	assert(_moduleState == ModuleState::Active);
+}
+
+void
+Blinker::stop()
+{
+	if(_moduleState != ModuleState::Active)
+	{
+		return; // nothing to do
+	}
+
+	UARTprintf("[Blinker] stopping...\n");
+
+	_running = false; // signal stop request
+
+	assert(!_running);
+}
+
+void
+Blinker::execWait()
+{
+	assert(_moduleState == ModuleState::Active);
+
+	_timer.asyncWait(std::chrono::milliseconds(1000),
+		[this](const auto& errorStatus)
+		{
+			assert(!errorStatus); // no errors will occur
+			static_cast<void>(errorStatus);
+
+			if(_running)
+			{
+				// keep blinking
+				toggleLED();
+				execWait();
+			}
+			else
+			{
+				// stop request signalled
+				_led.turnOff();
+
+				_moduleState = ModuleState::Ready;
+				UARTprintf("[Blinker] stopped\n");
+			}
+		});
+}
+
+void
+Blinker::toggleLED()
+{
+	if(_led.isTurnedOn())
+	{
+		_led.turnOff();
 	}
 	else
 	{
-		_greenLED.turnOn();
-		_turnedOn = true;
+		_led.turnOn();
 	}
-
-	_timer.asyncWait(std::chrono::milliseconds(500),
-		[this](const auto& errorStatus)
-		{
-			const auto code = errorStatus.code();
-			if(code != ErrorCode::Success)
-			{
-				if(code != ErrorCode::Aborted)
-				{
-					UARTprintf("[Blinker] error during wait, code: %d\n",
-						static_cast<int>(code));
-				}
-
-				return;
-			}
-
-			toggleGreenLED();
-		});
 }
 
 } // namespace blinker

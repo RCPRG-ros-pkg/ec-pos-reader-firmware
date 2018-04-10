@@ -19,7 +19,7 @@ public:
 	~EtherCAT();
 
 	template<typename TCallback>
-	void initialize(TCallback&& callback);
+	void init(TCallback&& callback);
 
 	template<typename TCallback>
 	void start(TCallback&& callback);
@@ -48,11 +48,9 @@ private:
 
 	void setupABCCHardware();
 
-	void doInitialization();
+	void doInit();
 
 	void doStart();
-
-	bool detectModule();
 
 	bool initApplicationDataObject();
 
@@ -71,11 +69,11 @@ private:
 
 template<typename TCallback>
 inline void
-EtherCAT::initialize(TCallback&& callback)
+EtherCAT::init(TCallback&& callback)
 {
 	assert(_state == State::PreInit);
 	_initCallback = std::forward<TCallback>(callback);
-	doInitialization();
+	doInit();
 }
 
 template<typename TCallback>

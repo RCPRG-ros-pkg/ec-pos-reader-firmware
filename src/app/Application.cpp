@@ -10,14 +10,22 @@ namespace app {
  * @details
  */
 Application::Application()
-	:	_sysTickDriver(_sysTickDevice, _eventLoop),
-		_blinker(_sysTickDriver, _gpioFDevice),
+	:	_redLEDPin(_gpiofDevice),
+		_greenLEDPin(_gpiofDevice),
+		_sysTickDriver(_sysTickDevice, _eventLoop),
+		_redLED(_redLEDPin),
+		_greenLED(_greenLEDPin),
+		_blinker(_sysTickDriver, _gpiofDevice),
 		_encoders(_sysTickDriver),
 		_etherCAT(_eventLoop, _sysTickDriver)
 {
-	UARTprintf("[Application] preinitialized\n");
+	UARTprintf("[Application] initialized\n");
 
-	assert(_state == State::Init);
+	_redLEDPin.setAsDigitalOutput();
+	_greenLEDPin.setAsDigitalOutput();
+
+	assert(_blinker.isReady());
+	assert(_encoders.isReady());
 }
 
 /**
@@ -36,109 +44,91 @@ Application::~Application()
 void
 Application::run()
 {
-	assert(_state == State::Init);
-	UARTprintf("[Application] starting...\n");
+	assert(!_blinker.isActive());
 
-	while(1)
-	{
-		switch(_state)
-		{
-			case State::Init:
-				runInit();
-				break;
+	start();
 
-			case State::Operational:
-				runOperational();
-				break;
-
-			default:
-				assert(_state == State::Error);
-				runError();
-				break;
-		}
-	}
-
-	UARTprintf("[Application] exits\n");
-}
-
-void
-Application::runInit()
-{
-	assert(_state == State::Init);
-
-	UARTprintf("[Application] entering INIT state...\n");
-
-	_blinker.signalInit();
-	_etherCAT.initialize(
-		[this](auto status)
-		{
-			if(status != ethercat::Status::Success)
-			{
-				UARTprintf("[Application] INIT error : %d\n",
-					static_cast<int>(status));
-				_state = State::Error;
-			}
-			else
-			{
-				UARTprintf("[Application] INIT success\n");
-				_state = State::Operational;
-			}
-
-			_eventLoop.stop();
-		});
-
-	handleEvents();
-	assert(_state == State::Operational || _state == State::Error);
-
-	UARTprintf("[Application] INIT state ends\n");
-}
-
-void
-Application::runOperational()
-{
-	assert(_state == State::Operational);
-
-	UARTprintf("[Application] entering OPERATIONAL state...\n");
-
-	_blinker.signalOperational();
-	_encoders.startReading();
-	_etherCAT.start(
-		[this](auto status)
-		{
-			UARTprintf("[Application] EtherCAT stopped, code: %d\n",
-				static_cast<int>(status));
-		});
-
-	handleEvents();
-	assert(!"Should not get here!");
-
-	UARTprintf("[Application] OPERATIONAL state ends\n");
-}
-
-void
-Application::runError()
-{
-	assert(_state == State::Error);
-
-	UARTprintf("[Application] entering ERROR state\n");
-
-	_blinker.signalError();
-
-	while(1);
-	assert(!"Should not get here!");
-
-	UARTprintf("[Application] exiting ERROR state\n");
-}
-
-void Application::handleEvents()
-{
-	// enter event handling loop. It exits after call to EventLoop::stop()
 	IntMasterEnable();
 	_eventLoop.run();
-	IntMasterDisable();
+	assert(!"Should not get here");
+}
 
-	// Restore state of EventLoop, because stop() was called
-	_eventLoop.reset();
+void
+Application::start()
+{
+	UARTprintf("[Application] starting modules...\n");
+
+	// turn leds to signal start procedure - yellow color
+	_redLED.turnOn();
+	_greenLED.turnOn();
+
+	// start modules
+	_blinker.start();
+	_encoders.start();
+
+	// wait for modules to be started
+	_eventLoop.busyWait(
+		[this]()
+		{
+			const auto endWait = (!_blinker.isReady()
+				&& !_encoders.isReady());
+			return endWait;
+		},
+		[this]()
+		{
+			if(!_blinker.isActive() || !_encoders.isActive())
+			{
+				UARTprintf("[Application] modules not started\n");
+				halt();
+				return;
+			}
+
+			UARTprintf("[Application] modules started\n");
+			_redLED.turnOff();
+			_greenLED.turnOff();
+
+			_eventLoop.busyWait(
+				[this]()
+				{
+					const auto endWait = (_blinker.isFailed()
+						|| _encoders.isFailed());
+					return endWait;
+				},
+				[this]()
+				{
+					UARTprintf("[Application] Blinker module failed\n");
+					halt();
+				});
+		});
+}
+
+void
+Application::halt()
+{
+	UARTprintf("[Application] halted\n");
+
+	// leave red led to signal error
+	_redLED.turnOn();
+	_greenLED.turnOff();
+
+	// stop modules
+	_blinker.stop();
+	_encoders.stop();
+
+	// wait for modules to be stopped and execute forever loop
+	_eventLoop.busyWait(
+		[this]()
+		{
+			const auto endWait = (!_blinker.isActive()
+				&& !_blinker.isActive());
+			return endWait;
+		},
+		[]()
+		{
+			UARTprintf("[Application] halting...\n");
+			IntMasterDisable();
+			while(1);
+		});
 }
 
 } // namespace app

@@ -27,15 +27,10 @@ extern "C" {
 
 #include "abcc_obj_cfg.h"
 
-}
+} // extern "C"
+
 #define APPL_WRITE_MAP_READ_ACCESS_DESC ( ABP_APPD_DESCR_GET_ACCESS |          \
                                           ABP_APPD_DESCR_MAPPABLE_WRITE_PD )
-
-static ABCC_CmdSeqRespStatusType HandleExceptionResp(ABP_MsgType* msg);
-static ABCC_CmdSeqRespStatusType HandleExceptionInfoResp(ABP_MsgType* msg);
-static ABCC_CmdSeqCmdStatusType ReadExeption(ABP_MsgType* msg);
-static ABCC_CmdSeqCmdStatusType ReadExeptionInfo(ABP_MsgType* msg);
-static void APPL_SyncIsr();
 
 static UINT32 appl_lSyncInput;
 
@@ -49,17 +44,6 @@ const AD_DefaultMapType APPL_asAdObjDefaultMap[] =
    { 51, PD_WRITE, AD_DEFAULT_MAP_ALL_ELEM, 0 },
    { AD_DEFAULT_MAP_END_ENTRY }
 };
-
-static volatile ABP_AnbStateType anybusState = ABP_ANB_STATE_SETUP;
-
-constexpr std::array<ABCC_CmdSeqType, 3>
-appl_asReadExeptionCmdSeq = {{
-   ABCC_CMD_SEQ( ReadExeption,     HandleExceptionResp ),
-   ABCC_CMD_SEQ( ReadExeptionInfo, HandleExceptionInfoResp ),
-   ABCC_CMD_SEQ_END()
-}};
-
-static BOOL unexpectedError = FALSE;
 
 namespace app {
 namespace ethercat {
@@ -103,17 +87,12 @@ EtherCAT::setupABCCHardware()
 }
 
 void
-EtherCAT::doInitialization()
+EtherCAT::doInit()
 {
 	assert(_state == State::PreInit);
 	UARTprintf("[EtherCAT] initializing...\n");
 
 	_state = State::Init;
-
-	if(!detectModule())
-	{
-		return;
-	}
 
 	if(!initApplicationDataObject())
 	{
@@ -141,7 +120,7 @@ EtherCAT::doStart()
 		{
 			if(SYNC_GetMode() == SYNC_MODE_NONSYNCHRONOUS)
 			{
-				UARTprintf("SYNC_MODE_NONSYNCHRONOUS");
+				// UARTprintf("SYNC_MODE_NONSYNCHRONOUS\n");
 				ABCC_TriggerWrPdUpdate();
 			}
 
@@ -153,29 +132,6 @@ EtherCAT::doStart()
 		{
 			assert(!"Should not get here");
 		});
-}
-
-bool EtherCAT::detectModule()
-{
-	assert(_state == State::Init);
-	UARTprintf("[EtherCAT] detecting module...\n");
-
-	if(!ABCC_ModuleDetect())
-	{
-		UARTprintf("[EtherCAT] module not detected!\n");
-
-		_state = State::Error;
-		const auto postSuccess = _eventLoop.post(
-			[this]() { _initCallback(Status::ModuleNotDetected); });
-		assert(postSuccess);
-		static_cast<void>(postSuccess);
-
-		return false;
-	}
-
-	UARTprintf("[EtherCAT] module detected\n");
-
-	return true;
 }
 
 bool EtherCAT::initApplicationDataObject()
@@ -209,7 +165,7 @@ bool EtherCAT::startABCCDriver()
 	assert(_state == State::Init);
 	UARTprintf("[EtherCAT] starting driver...\n");
 
-	constexpr auto startupTime = std::chrono::milliseconds(0);
+	constexpr auto startupTime = std::chrono::milliseconds::zero();
 	const auto startDriverStatus = ABCC_StartDriver(startupTime.count());
 	if(startDriverStatus != ABCC_EC_NO_ERROR)
 	{
@@ -240,7 +196,8 @@ void EtherCAT::waitForCommunication()
 		[&communicationState]()
 		{
 			communicationState = ABCC_isReadyForCommunication();
-			return (communicationState != ABCC_NOT_READY_FOR_COMMUNICATION);
+			const auto isReady = (communicationState != ABCC_NOT_READY_FOR_COMMUNICATION);
+			return isReady;
 		},
 		[&]()
 		{
@@ -266,12 +223,28 @@ void EtherCAT::waitForCommunication()
 				[this]() { _initCallback(Status::Success); });
 			assert(postSuccess);
 			static_cast<void>(postSuccess);
-
 		});
 }
 
 } // namespace ethercat
 } // namespace app
+
+static ABCC_CmdSeqRespStatusType HandleExceptionResp(ABP_MsgType* msg);
+static ABCC_CmdSeqRespStatusType HandleExceptionInfoResp(ABP_MsgType* msg);
+static ABCC_CmdSeqCmdStatusType ReadExeption(ABP_MsgType* msg);
+static ABCC_CmdSeqCmdStatusType ReadExeptionInfo(ABP_MsgType* msg);
+static void APPL_SyncIsr();
+
+static volatile ABP_AnbStateType anybusState = ABP_ANB_STATE_SETUP;
+
+constexpr std::array<ABCC_CmdSeqType, 3>
+appl_asReadExeptionCmdSeq = {{
+   ABCC_CMD_SEQ( ReadExeption,     HandleExceptionResp ),
+   ABCC_CMD_SEQ( ReadExeptionInfo, HandleExceptionInfoResp ),
+   ABCC_CMD_SEQ_END()
+}};
+
+static BOOL unexpectedError = FALSE;
 
 //! Builds the command for reading the exception code
 static ABCC_CmdSeqCmdStatusType
@@ -481,6 +454,7 @@ ABCC_CbfEvent(UINT16 iEvents)
 {
 	// other values not acceptable in SPI mode with this driver
 	assert(iEvents == 0);
+	static_cast<void>(iEvents);
 }
 
 void
@@ -513,7 +487,6 @@ triggerAdiSyncInputCapture()
    /*
    **  Copy the sensor to the sync input.
    **  appl_lSensorValue represent for example a measured speed.
-   **
    */
    appl_lSyncInput = readEncoder();
 
