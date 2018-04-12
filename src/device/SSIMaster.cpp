@@ -3,8 +3,7 @@
 #include <algorithm>
 #include <limits>
 
-//! CPU clock speed
-extern int clockHz;
+#include "init.hpp"
 
 namespace device {
 
@@ -89,7 +88,7 @@ SSIMasterBase::configure(int bitRate, std::size_t frameWidth)
 	assert(frameWidth >= MinFrameWidth
 		&& frameWidth <= MaxFrameWidth);
 
-	SSIConfigSetExpClk(_baseAddress, clockHz, SSI_FRF_TI,
+	SSIConfigSetExpClk(_baseAddress, ClockHz, SSI_FRF_TI,
 		SSI_MODE_MASTER, bitRate, frameWidth);
 	SSIEnable(_baseAddress);
 	assert(SSIGetMode(_baseAddress) == SSIMode::Master);

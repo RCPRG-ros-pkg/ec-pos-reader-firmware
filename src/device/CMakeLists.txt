@@ -1,5 +1,6 @@
 add_library(device
 	GPIO.cpp
+	GPTM.cpp
 	# RTC.cpp
 	SSIMaster.cpp
 	SysTick.cpp

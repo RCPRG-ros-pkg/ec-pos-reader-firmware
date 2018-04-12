@@ -1,8 +1,8 @@
 #include "device/SysTick.hpp"
 
-#include <cassert>
+#include "init.hpp"
 
-extern int clockHz;
+#include <cassert>
 
 namespace device {
 
@@ -36,7 +36,7 @@ SysTickBase::SysTickBase()
 	SysTickIntRegister(sysTickISR);
     // SysTickBase interrupts is enabled after call to SysTickIntRegister
 
-	const std::uint32_t period = (clockHz / TickFrequency);
+	constexpr std::uint32_t period = (ClockHz / TickFrequency);
 	SysTickPeriodSet(period);
 }
 
