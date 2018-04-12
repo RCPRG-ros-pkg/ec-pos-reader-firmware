@@ -11,10 +11,9 @@
 
 #include "util/driverlib/ssi.hpp"
 
-extern "C" {
+#include "init.hpp"
 
-//! Global variable which contains speed of system clock
-int clockHz;
+extern "C" {
 
 //! Initializes early hardware
 //! Sets up system clock to the 80MHz
@@ -30,8 +29,8 @@ void preinitHardware()
 //! Postcondition: clockHz will be set to non-zero value
 void initHardware()
 {
-	clockHz = MAP_SysCtlClockGet();
-	assert(clockHz != 0);
+	// clockHz = MAP_SysCtlClockGet();
+	// assert(clockHz != 0);
 
 	// Configure GPIO of pins of SSI0 module. Pull-up SSI0CLK pin
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
@@ -50,7 +49,7 @@ void initIO()
 	MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
 	constexpr auto IOBaudRate = 115200;
-	UARTStdioConfig(0, IOBaudRate, clockHz);
+	UARTStdioConfig(0, IOBaudRate, ClockHz);
 
 	UARTprintf("[Init] IO initialized\n");
 }

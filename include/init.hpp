@@ -8,6 +8,8 @@
 
 extern "C" {
 
+constexpr auto ClockHz = 80000000;
+
 //! configure clock
 void preinitHardware();
 
