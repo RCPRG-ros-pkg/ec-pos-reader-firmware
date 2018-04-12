@@ -2,27 +2,21 @@
 
 #include "binary.h" // ETLCPP
 
-#include "hohner/Position.hpp"
+namespace component {
 
-namespace hohner {
-
-/**
- * @brief Hohner's Rotary Encoder class, SMRS59 series
- * @details
- */
 template<typename TSSIMasterDevice, std::size_t Resolution>
-class SMRS59
+class SSIEncoder
 {
 public:
 	//! Constructor
-	SMRS59(TSSIMasterDevice& ssiMasterDevice)
+	SSIEncoder(TSSIMasterDevice& ssiMasterDevice)
 		:	_ssiMasterDevice(ssiMasterDevice)
 	{
 
 	}
 
 	//! Reads encoder position value. Blocking call.
-	Position readPosition()
+	int readPosition()
 	{
 		// read one frame from device
 		assert(!_ssiMasterDevice.isBusy());
@@ -35,11 +29,11 @@ public:
 		// convert from gray code to binary
 		const auto value = etl::gray_to_binary(data);
 
-		return Position(value);
+		return value;
 	}
 
 private:
 	TSSIMasterDevice& _ssiMasterDevice;
 };
 
-} // namespace hohner
+} // namespace component
