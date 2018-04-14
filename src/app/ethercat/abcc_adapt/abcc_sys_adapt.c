@@ -25,6 +25,7 @@
 #define IRQ_PIN      GPIO_PIN_1
 #define RESET_PIN    GPIO_PIN_2
 #define MI0_SYNC_PIN GPIO_PIN_3
+#define MEAS_PIN     GPIO_PIN_6
 
 //! Callback function used to inform ABCC about received MISO frame
 static ABCC_SYS_SpiDataReceivedCbfType spiDataReceivedCb = 0;
@@ -74,6 +75,8 @@ void portE_ISR()
    }
 }
 
+volatile bool sent = false;
+
 //! Interrupt Service Routine for SSI1
 //! It will be invoked, when DMA has finished either TX or RX.
 //! When RX has been finished, `spiDataReceivedCb` will be called.
@@ -89,6 +92,7 @@ void ssi1_ISR()
    {
       // DMA SSIRX transfer completed. Invoke the callback to the ABCC
       assert(spiDataReceivedCb);
+      sent = true;
       spiDataReceivedCb();
       dmaIntClearMask |= SSI1RX_CH_M;
    }
@@ -142,7 +146,7 @@ BOOL ABCC_SYS_HwInit()
    // - Source address fixed (SSI1RX FIFO)
    // - Destination address increments by byte (MISO frame)
    MAP_uDMAChannelControlSet(SSI1RX_CH | UDMA_PRI_SELECT,
-      UDMA_SIZE_8 | UDMA_SRC_INC_NONE | UDMA_DST_INC_8 | UDMA_ARB_4);
+      UDMA_SIZE_8 | UDMA_SRC_INC_NONE | UDMA_DST_INC_8 | UDMA_ARB_8);
    MAP_uDMAChannelAssign(SSI1RX_ASGN);
    MAP_uDMAChannelAttributeDisable(SSI1RX_CH, UDMA_ATTR_REQMASK);
 
@@ -150,9 +154,12 @@ BOOL ABCC_SYS_HwInit()
    // - Source address increments by byte (MOSI frame)
    // - Destination address fixed (SSI1TX FIFO)
    MAP_uDMAChannelControlSet(SSI1TX_CH | UDMA_PRI_SELECT,
-      UDMA_SIZE_8 | UDMA_SRC_INC_8 | UDMA_DST_INC_NONE | UDMA_ARB_4);
+      UDMA_SIZE_8 | UDMA_SRC_INC_8 | UDMA_DST_INC_NONE | UDMA_ARB_8);
    MAP_uDMAChannelAssign(SSI1TX_ASGN);
    MAP_uDMAChannelAttributeDisable(SSI1TX_CH, UDMA_ATTR_REQMASK);
+
+   // Configure GPIO pin for Input and Output processing time measurement
+   MAP_GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, MEAS_PIN);
 
    // Configure GPIO of pins of SSI1 module.
    MAP_GPIOPinTypeSSI(GPIO_PORTD_BASE,
@@ -165,7 +172,7 @@ BOOL ABCC_SYS_HwInit()
    // configure SSI1: SPI3 mode, master, 5MHz and 8bits frame width, DMA RX+TX
    MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI1);
    MAP_SSIConfigSetExpClk(SSI1_BASE, MAP_SysCtlClockGet(),
-      SSI_FRF_MOTO_MODE_3, SSI_MODE_MASTER, 12500000, 8);
+      SSI_FRF_MOTO_MODE_3, SSI_MODE_MASTER, 13000000, 8);
    MAP_SSIDMAEnable(SSI1_BASE, SSI_DMA_TX | SSI_DMA_RX);
    SSIIntRegister(SSI1_BASE, ssi1_ISR);
    SSIEnable(SSI1_BASE);
@@ -173,7 +180,8 @@ BOOL ABCC_SYS_HwInit()
    return true;
 }
 
-//! Should perform additional to HwInit work. In this case, does nothing.
+//! Should perform additional to HwInit work, e.g. allocate resources.
+//! In this case, does nothing.
 BOOL ABCC_SYS_Init()
 {
    return true;
@@ -266,7 +274,21 @@ void ABCC_SYS_SpiSendReceive(void* pxSendDataBuffer, void* pxReceiveDataBuffer, 
    uDMAChannelTransferSet(SSI1TX_CH | UDMA_PRI_SELECT, UDMA_MODE_BASIC,
       txSrcBuffer, txDstBuffer, iLength);
 
+   sent = false;
+
    // Enable SSIRX and then SSITX DMA channels
    uDMAChannelEnable(SSI1RX_CH);
    uDMAChannelEnable(SSI1TX_CH);
+
+   while(!sent);
+}
+
+void ABCC_SYS_GpioSet()
+{
+   GPIOPinWrite(GPIO_PORTD_BASE, MEAS_PIN, MEAS_PIN);
+}
+
+void ABCC_SYS_GpioReset()
+{
+   GPIOPinWrite(GPIO_PORTD_BASE, MEAS_PIN, 0);
 }
