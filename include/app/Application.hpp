@@ -34,14 +34,6 @@ private:
 	using ErrorStatus = embxx::error::ErrorStatus;
 	using ErrorCode = ErrorStatus::ErrorCodeType;
 
-	// devices
-	using RedLEDPin = device::GPIOF::Pin<1>;
-	using GreenLEDPin = device::GPIOF::Pin<3>;
-
-	// components
-	using GreenLED = component::LED<GreenLEDPin, component::LogicDesign::ActiveHigh>;
-	using RedLED = component::LED<RedLEDPin, component::LogicDesign::ActiveHigh>;
-
 	//! Constructor
 	Application();
 
@@ -49,29 +41,15 @@ private:
 	~Application();
 
 	//! Starts modules
-	void start();
-
-	//! Stops modules
-	void stop();
-
-	//! Halts whole application
-	void halt();
+	void startModules();
 
 	// commons
 	common::EventLoop _eventLoop;
 
 	// devices
-	common::SysTickDevice _sysTickDevice;
 	device::GPIOF _gpiofDevice;
-	RedLEDPin _redLEDPin;
-	GreenLEDPin _greenLEDPin;
 
 	// drivers
-	common::SysTickDriver _sysTickDriver;
-
-	// components
-	RedLED _redLED;
-	GreenLED _greenLED;
 
 	// modules
 	blinker::Blinker _blinker;
