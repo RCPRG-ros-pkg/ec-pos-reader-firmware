@@ -41,7 +41,6 @@ set(CMAKE_EXE_LINKER_FLAGS "\
 add_subdirectory(app)
 add_subdirectory(component)
 add_subdirectory(device)
-add_subdirectory(hohner)
 add_subdirectory(util)
 
 add_executable(${PROJECT_NAME}
