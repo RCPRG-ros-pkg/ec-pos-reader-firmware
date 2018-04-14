@@ -1,9 +1,13 @@
 #pragma once
 
 #include "device/GPIO.hpp"
+#include "device/GPTM.hpp"
+
+#include "driver/DeadlineTimer.hpp"
+
 #include "component/LED.hpp"
 
-#include "app/common/SysTickDriver.hpp"
+#include "app/common/EventLoop.hpp"
 #include "app/ModuleState.hpp"
 
 namespace app {
@@ -12,9 +16,11 @@ namespace blinker {
 class Blinker
 {
 public:
+	using EventLoop = common::EventLoop;
+	using LEDPinGPIO = device::GPIOF;
+
 	//! Constructor
-	Blinker(common::SysTickDriver& sysTickDriver,
-		device::GPIOF& gpioFDevice);
+	Blinker(EventLoop& eventLoop, LEDPinGPIO& ledPinGPIO);
 
 	//! Starts module
 	void start();
@@ -48,9 +54,11 @@ public:
 private:
 	// devices
 	using LEDPin = device::GPIOF::Pin<2>;
+	using DeadlineTimerDevice = device::GPTM0;
 
 	// drivers
-	using Timer = common::SysTickDriver::Timer;
+	using DeadlineTimer = driver::DeadlineTimer<DeadlineTimerDevice,
+		EventLoop, embxx::util::StaticFunction<void()>>;
 
 	// components
 	using LED = component::LED<LEDPin, component::LogicDesign::ActiveHigh>;
@@ -61,9 +69,10 @@ private:
 
 	// devices
 	LEDPin _ledPin;
+	DeadlineTimerDevice _deadlineTimerDevice;
 
 	// drivers
-	Timer _timer;
+	DeadlineTimer _deadlineTimer;
 
 	// components
 	LED _led;

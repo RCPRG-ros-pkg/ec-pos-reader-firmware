@@ -6,14 +6,11 @@
 namespace app {
 namespace blinker {
 
-Blinker::Blinker(common::SysTickDriver& sysTickDriver,
-	device::GPIOF& gpioFDevice)
-	:	_ledPin(gpioFDevice),
-		_timer(sysTickDriver.allocTimer()),
+Blinker::Blinker(EventLoop& eventLoop, LEDPinGPIO& ledPinGPIO)
+	:	_ledPin(ledPinGPIO),
+		_deadlineTimer(eventLoop, _deadlineTimerDevice),
 		_led(_ledPin)
 {
-	assert(_timer.isValid());
-
 	_ledPin.setAsDigitalOutput();
 
 	UARTprintf("[Blinker] ready\n");
@@ -61,11 +58,11 @@ Blinker::execWait()
 {
 	assert(_moduleState == ModuleState::Active);
 
-	_timer.asyncWait(std::chrono::milliseconds(1000),
-		[this](const auto& errorStatus)
+	_deadlineTimer.asyncWait(std::chrono::milliseconds(1000),
+		[this]()
 		{
-			assert(!errorStatus); // no errors will occur
-			static_cast<void>(errorStatus);
+			// assert(!errorStatus); // no errors will occur
+			// static_cast<void>(errorStatus);
 
 			if(_running)
 			{
