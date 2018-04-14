@@ -99,8 +99,8 @@
 /*
 ** Attribute 16: Enable FoE (BOOL - TRUE/FALSE)
 */
-#define ECT_IA_ENABLE_FOE_ENABLE                FALSE
-#define ECT_IA_ENABLE_FOE_VALUE                 TRUE
+#define ECT_IA_ENABLE_FOE_ENABLE                TRUE
+#define ECT_IA_ENABLE_FOE_VALUE                 FALSE
 
 /*
 ** Attribute 17: Enable EoE (BOOL - TRUE/FALSE)

@@ -26,20 +26,35 @@
 ** Attribute 4: Output processing (UINT32 - 0x00000000-0xFFFFFFFF)
 */
 #define SYNC_IA_OUTPUT_PROCESSING_ENABLE        TRUE
-#define SYNC_IA_OUTPUT_PROCESSING_VALUE         1000L
+
+#ifndef NDEBUG
+# define SYNC_IA_OUTPUT_PROCESSING_VALUE         11000L
+#else
+# define SYNC_IA_OUTPUT_PROCESSING_VALUE         700L
+#endif
 
 //
 // ** Attribute 5: Input processing (UINT32 - 0x00000000-0xFFFFFFFF)
 //
 #define SYNC_IA_INPUT_PROCESSING_ENABLE         TRUE
-#define SYNC_IA_INPUT_PROCESSING_VALUE          1000L
+
+#ifndef NDEBUG
+# define SYNC_IA_INPUT_PROCESSING_VALUE          250000L
+#else
+# define SYNC_IA_INPUT_PROCESSING_VALUE          175000L
+#endif
 
 /*
 ** Attribute 6: Min cycle time (UINT32 - 0x00000000-0xFFFFFFFF)
 */
 #define SYNC_IA_MIN_CYCLE_TIME_ENABLE           TRUE
-#define SYNC_IA_MIN_CYCLE_TIME_VALUE            1L
 
+#ifndef NDEBUG
+# define RDPDI_TO_SYNC_DELAY                     150000L
+#else
+# define RDPDI_TO_SYNC_DELAY                     80000L
+#endif
+#define SYNC_IA_MIN_CYCLE_TIME_VALUE             (RDPDI_TO_SYNC_DELAY + SYNC_IA_INPUT_PROCESSING_VALUE)
 /*
 ** Attribute 7: Sync mode (UINT16 - 0: Nonsynchronous operation
 **                                  1: Synchronous operation)
