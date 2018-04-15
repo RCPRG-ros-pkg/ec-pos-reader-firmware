@@ -1,2 +1,2 @@
-# vsa-encoders-ecat-firmware
-Firmware for Encoders to EtherCAT adaptor board, used in VSA research environment, written in C/C++
+# ec-pos-reader-firmware
+Firmware for EtherCAT capable rotary encoders positions reader board, based on Tiva ARM Cortex-M4 CPU, written in C/C++ 
