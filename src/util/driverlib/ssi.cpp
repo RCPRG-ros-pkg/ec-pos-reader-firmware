@@ -7,7 +7,7 @@
  * @param baseAddress base address of SSI module
  * @param clockRate clock speed for SSI module (uint32 for compability)
  */
-std::uint32_t SSIGetBitRate(std::uint32_t baseAddress, std::uint32_t clockRate)
+uint32_t SSIBitRateGet(uint32_t baseAddress, uint32_t clockRate)
 {
 	assert(clockRate != 0);
 
