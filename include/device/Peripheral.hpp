@@ -8,8 +8,6 @@ namespace device {
 
 class PeripheralBase
 {
-public:
-
 protected:
 	PeripheralBase(std::uint32_t id)
 		:	_id(id)
@@ -18,6 +16,7 @@ protected:
 		SysCtlPeripheralEnable(id);
 	}
 
+public:
 	~PeripheralBase()
 	{
 		assert(SysCtlPeripheralReady(_id)); // peripheral was enabled (used)
@@ -28,16 +27,16 @@ private:
 	const std::uint32_t _id;
 };
 
-template<std::uint32_t TID>
+template<std::uint32_t TId>
 class Peripheral
 	:	public PeripheralBase
 {
 public:
-	static_assert(TID > 0);
-	constexpr static auto ID = TID;
+	static_assert(TId > 0);
+	constexpr static auto Id = TId;
 
 	Peripheral()
-		:	PeripheralBase(ID)
+		:	PeripheralBase(Id)
 	{
 
 	}
