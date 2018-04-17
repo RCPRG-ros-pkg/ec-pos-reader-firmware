@@ -15,15 +15,25 @@ public:
 	int readPosition();
 
 private:
-	constexpr static auto BitRate = 1250000;
-	constexpr static auto DataWidth = 13;
-	using SSIMasterDevice = device::SSIMaster0<BitRate, DataWidth>;
+	// devices typedefs
+	using Encoder0SSIMasterDevice = device::SSIMaster<SSI0_BASE, SYSCTL_PERIPH_SSI0>;
+	using Encoder1SSIMasterDevice = device::SSIMaster<SSI1_BASE, SYSCTL_PERIPH_SSI1>;
 
-	constexpr static auto Resolution = DataWidth;
-	using SSIEncoder = component::SSIEncoder<SSIMasterDevice, Resolution>;
+	// components typedefs
+	using SSIEncoder0 = component::SSIEncoder<Encoder0SSIMasterDevice>;
+	using SSIEncoder1 = component::SSIEncoder<Encoder1SSIMasterDevice>;
 
-	SSIMasterDevice _ssiMasterDevice;
-	SSIEncoder _ssiEncoder;
+	// default SSI settings for encoders
+	constexpr static auto DefaultBitRate = 1500000;
+	constexpr static auto DefaultResolution = 13;
+
+	// devices members
+	Encoder0SSIMasterDevice _encoder0SSIMasterDevice;
+	Encoder1SSIMasterDevice _encoder1SSIMasterDevice;
+
+	// components members
+	SSIEncoder0 _ssiEncoder0;
+	SSIEncoder1 _ssiEncoder1;
 };
 
 } // namespace encoders
