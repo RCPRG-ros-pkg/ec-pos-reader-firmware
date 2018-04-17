@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app/common/SysTickDriver.hpp"
+#include "app/common/EventLoop.hpp"
 
 #include "embxx/util/StaticFunction.h"
 

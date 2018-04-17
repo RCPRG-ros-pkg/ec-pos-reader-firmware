@@ -1,8 +1,6 @@
 #pragma once
 
 #include "app/common/EventLoop.hpp"
-#include "app/common/SysTickDevice.hpp"
-#include "app/common/SysTickDriver.hpp"
 
 #include "device/GPIO.hpp"
 
