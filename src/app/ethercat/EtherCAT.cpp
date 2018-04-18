@@ -4,6 +4,8 @@
 
 #include "app/ethercat/abcc_drv/abcc.h"
 
+#include "embxx/error/ErrorStatus.h"
+
 extern "C" {
 
 #include "abcc_td.h"
@@ -12,6 +14,48 @@ extern "C" {
 #include "appl_abcc_handler.h"
 
 } // extern "C"
+
+#if(!SYNC_OBJ_ENABLE)
+   #error SYNC_OBJ_ENABLE must be set to TRUE in abcc_obj_cfg.h.h
+#endif
+
+#if(!ABCC_CFG_SYNC_ENABLE)
+   #error ABCC_CFG_SYNC_ENABLE in abcc_drv_cfg.h must be enabled
+#endif
+
+/*------------------------------------------------------------------------------
+** Access descriptor for the ADIs
+**------------------------------------------------------------------------------
+*/
+#define APPL_WRITE_MAP_READ_ACCESS_DESC (ABP_APPD_DESCR_GET_ACCESS |          \
+                                          ABP_APPD_DESCR_MAPPABLE_WRITE_PD)
+
+/*
+** Represent the sampled inputs at the sync pulse. The variable is
+** linked to the ADI entry table.
+*/
+static UINT32 _encoder0Position;
+
+/*------------------------------------------------------------------------------
+**  32 bit input/output.
+**------------------------------------------------------------------------------
+*/
+const AD_AdiEntryType APPL_asAdiEntryList[] =
+{
+	{ 1, (char*)"encoder0Position", ABP_UINT32, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &_encoder0Position, NULL } } }
+};
+
+/*------------------------------------------------------------------------------
+** Map all adi:s in both directions
+**------------------------------------------------------------------------------
+** 1. AD instance | 2. Direction | 3. Num elements | 4. Start index |
+**------------------------------------------------------------------------------
+*/
+const AD_DefaultMapType APPL_asAdObjDefaultMap[] =
+{
+	{ 1, PD_WRITE, AD_DEFAULT_MAP_ALL_ELEM, 0 },
+	{ AD_DEFAULT_MAP_END_ENTRY }
+};
 
 namespace app {
 namespace ethercat {
@@ -85,51 +129,6 @@ EtherCAT::start()
 	UARTprintf("[EtherCAT] started\n");
 }
 
-} // namespace ethercat
-} // namespace app
-
-#if(!SYNC_OBJ_ENABLE)
-   #error SYNC_OBJ_ENABLE must be set to TRUE in abcc_obj_cfg.h.h
-#endif
-
-#if(!ABCC_CFG_SYNC_ENABLE)
-   #error ABCC_CFG_SYNC_ENABLE in abcc_drv_cfg.h must be enabled
-#endif
-
-/*------------------------------------------------------------------------------
-** Access descriptor for the ADIs
-**------------------------------------------------------------------------------
-*/
-#define APPL_WRITE_MAP_READ_ACCESS_DESC (ABP_APPD_DESCR_GET_ACCESS |          \
-                                          ABP_APPD_DESCR_MAPPABLE_WRITE_PD)
-
-/*
-** Represent the sampled appl_lSensorInput at the sync pulse. The variable is
-** linked to the ADI entry table.
-*/
-static UINT32 _encoder0Position;
-
-/*------------------------------------------------------------------------------
-**  32 bit input/output.
-**------------------------------------------------------------------------------
-*/
-const AD_AdiEntryType APPL_asAdiEntryList[] =
-{
-	{ 1, (char*)"encoder0Position", ABP_UINT32, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &_encoder0Position, NULL } } }
-};
-
-/*------------------------------------------------------------------------------
-** Map all adi:s in both directions
-**------------------------------------------------------------------------------
-** 1. AD instance | 2. Direction | 3. Num elements | 4. Start index |
-**------------------------------------------------------------------------------
-*/
-const AD_DefaultMapType APPL_asAdObjDefaultMap[] =
-{
-	{ 1, PD_WRITE, AD_DEFAULT_MAP_ALL_ELEM, 0 },
-	{ AD_DEFAULT_MAP_END_ENTRY }
-};
-
 /*------------------------------------------------------------------------------
 ** If sync is used this function is called to indicate that write process data
 ** ADI:s shall be updated with the captured input.
@@ -141,15 +140,25 @@ const AD_DefaultMapType APPL_asAdObjDefaultMap[] =
 **    None
 **------------------------------------------------------------------------------
 */
-void triggerAdiSyncInputCapture(void)
+void
+EtherCAT::captureInputs()
 {
-	/*
-	**  Copy the sensor to the sync input.
-	**  appl_lSensorValue represent for example a measured speed.
-	**
-	*/
-	const auto encoder0Position = app::ethercat::EtherCAT::_instance->_encoders.readPosition();
-	_encoder0Position = encoder0Position;
+	// copy the sensors to the sync input.
+
+	Position position;
+	ErrorCode ec;
+	_encoders.readPosition(position, ec);
+	if(embxx::error::ErrorStatus(ec))
+	{
+		// error occured during read operation
+		UARTprintf("[EtherCAT] could not capture inputs, ec=%d\n",
+			static_cast<int>(ec));
+		APPL_UnexpectedError();
+		return;
+	}
+
+	// inputs capture success
+	_encoder0Position = position;
 
 	/*
 	** Always update the ABCC with the latest write process data at the end of
@@ -159,8 +168,8 @@ void triggerAdiSyncInputCapture(void)
 	ABCC_TriggerWrPdUpdate();
 }
 
-
-void APPL_SyncIsr(void)
+void
+EtherCAT::handleSyncISR()
 {
 	/*
 	** This is the the start of the sync cycle. This point is as close to the
@@ -208,7 +217,17 @@ void APPL_SyncIsr(void)
 	** In this example the input capture  time is ignored and the
 	** function is called directly (InputCaptureTime = 0).
 	*/
-	triggerAdiSyncInputCapture();
+	captureInputs();
+}
+
+} // namespace ethercat
+} // namespace app
+
+void APPL_SyncIsr(void)
+{
+	const auto instance = app::ethercat::EtherCAT::_instance;
+	assert(instance != nullptr);
+	instance->handleSyncISR();
 }
 
 UINT16 APPL_GetNumAdi(void)

@@ -4,15 +4,21 @@
 
 #include "component/SSIEncoder.hpp"
 
+#include "embxx/error/ErrorCode.h"
+
 namespace app {
 namespace encoders {
 
 class Encoders
 {
 public:
+	using ErrorCode = embxx::error::ErrorCode;
+
+	using Position = component::Position;
+
 	Encoders();
 
-	int readPosition();
+	void readPosition(Position& position, ErrorCode& ec);
 
 private:
 	// devices typedefs
@@ -20,11 +26,12 @@ private:
 	using Encoder1SSIMasterDevice = device::SSIMaster<SSI1_BASE, SYSCTL_PERIPH_SSI1>;
 
 	// components typedefs
-	using SSIEncoder0 = component::SSIEncoder<Encoder0SSIMasterDevice>;
-	using SSIEncoder1 = component::SSIEncoder<Encoder1SSIMasterDevice>;
+	using Encoder0 = component::SSIEncoder<Encoder0SSIMasterDevice>;
+	using Encoder1 = component::SSIEncoder<Encoder1SSIMasterDevice>;
 
 	// default SSI settings for encoders
-	constexpr static auto DefaultBitRate = 1500000;
+	constexpr static auto DefaultBitRate = 1000000;
+	constexpr static auto DefaultFrameWidth = 13;
 	constexpr static auto DefaultResolution = 13;
 
 	// devices members
@@ -32,8 +39,11 @@ private:
 	Encoder1SSIMasterDevice _encoder1SSIMasterDevice;
 
 	// components members
-	SSIEncoder0 _ssiEncoder0;
-	SSIEncoder1 _ssiEncoder1;
+	Encoder0 _encoder0;
+	Encoder1 _encoder1;
+
+	Position _encoder0LastPosition;
+	Position _encoder1LastPosition;
 };
 
 } // namespace encoders

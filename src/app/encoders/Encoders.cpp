@@ -1,27 +1,42 @@
 #include "app/encoders/Encoders.hpp"
 
-#include "tivaware/utils/uartstdio.h"
-
 #include <cassert>
+
+#include "tivaware/utils/uartstdio.h"
+#include "embxx/error/ErrorStatus.h"
 
 namespace app {
 namespace encoders {
 
 Encoders::Encoders()
-	:	_encoder0SSIMasterDevice(),
-		_encoder1SSIMasterDevice(),
-		_ssiEncoder0(_encoder0SSIMasterDevice,
-			DefaultResolution, DefaultBitRate),
-		_ssiEncoder1(_encoder1SSIMasterDevice,
-			DefaultResolution, DefaultBitRate)
+	:	_encoder0SSIMasterDevice(DefaultBitRate, DefaultFrameWidth),
+		_encoder1SSIMasterDevice(DefaultBitRate, DefaultFrameWidth),
+		_encoder0(_encoder0SSIMasterDevice, DefaultResolution),
+		_encoder1(_encoder1SSIMasterDevice, DefaultResolution)
 {
 	UARTprintf("[Encoders] ready\n");
 }
 
-int
-Encoders::readPosition()
+void
+Encoders::readPosition(Position& position, ErrorCode& ec)
 {
-	return _ssiEncoder0.readPosition();
+	_encoder0.readPosition(position, ec);
+	if(embxx::error::ErrorStatus(ec))
+	{
+		// error occured during reading the position
+		// forward error code to the caller and return its previous position
+		UARTprintf("[Encoders] could not read position, ec=%d\n",
+			static_cast<int>(ec));
+		position = _encoder0LastPosition;
+		return;
+	}
+
+	// read position success
+	// backup received position
+	if(position != _encoder0LastPosition)
+	{
+		_encoder0LastPosition = position;
+	}
 }
 
 } // namespace encoders
