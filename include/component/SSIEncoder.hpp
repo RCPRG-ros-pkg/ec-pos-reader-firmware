@@ -1,19 +1,24 @@
 #pragma once
 
 #include "binary.h" // ETLCPP
+#include "embxx/error/ErrorStatus.h"
 
 namespace component {
+
+using Position = int;
 
 template<typename TSSIMasterDevice>
 class SSIEncoder
 {
+	using SSIMasterDeviceFrameType = typename TSSIMasterDevice::FrameType;
+
 public:
-	using PositionType = int;
-
-	constexpr static auto MinResolution = TSSIMasterDevice::MinDataWidth;
-	constexpr static auto MaxResolution = TSSIMasterDevice::MaxDataWidth;
-
 	using SSIMasterDevice = TSSIMasterDevice;
+
+	constexpr static auto MinResolution = SSIMasterDevice::MinFrameWidth;
+	constexpr static auto MaxResolution = SSIMasterDevice::MaxFrameWidth;
+
+	using ErrorCode = typename SSIMasterDevice::ErrorCode;
 
 	//! Constructor
 	SSIEncoder(SSIMasterDevice& ssiMasterDevice,
@@ -22,50 +27,47 @@ public:
 	{
 		assert(resolution >= MinResolution
 			&& resolution <= MaxResolution);
-		_ssiMasterDevice.setDataWidth(resolution);
-	}
 
-	//! Constructor
-	SSIEncoder(SSIMasterDevice& ssiMasterDevice,
-		std::size_t resolution, int bitRate)
-		:	SSIEncoder(ssiMasterDevice, resolution)
-	{
-		setBitRate(bitRate);
+		// Change SSIMaster frame width only if needed
+		const auto frameWidth = resolution;
+		if(frameWidth != ssiMasterDevice.getFrameWidth())
+		{
+			ssiMasterDevice.setFrameWidth(resolution);
+		}
 	}
 
 	//! Reads encoder position value. Blocking call.
-	PositionType readPosition()
+	void readPosition(Position& position, ErrorCode& errorCode)
 	{
-		// read one data item from device
 		assert(!_ssiMasterDevice.isBusy());
-		auto data = _ssiMasterDevice.readOne();
 
-		// clear unused bits
-		const auto resolution = _ssiMasterDevice.getDataWidth();
-		data &= ((1 << resolution) - 1);
+		// read one frame from the device
+		ErrorCode ec;
+		SSIMasterDeviceFrameType frame;
+		_ssiMasterDevice.readOne(frame, ec);
+		if(embxx::error::ErrorStatus(ec))
+		{
+			// error occured during read operation
+			errorCode = ec;
+			return;
+		}
 
-		// convert from gray code to binary
-		const auto value = etl::gray_to_binary(data);
-
-		return value;
-	}
-
-	//! Sets bit rate of transmission with encoder
-	void setBitRate(int bitRate)
-	{
-		_ssiMasterDevice.setBitRate(bitRate);
-	}
-
-	//! Gets the bit rate of transmission with encoder
-	int getBitRate() const
-	{
-		return _ssiMasterDevice.getBitRate();
+		// read success
+		// process received value
+		position = etl::gray_to_binary(frame);
+		errorCode = ec; // copy succeeded error code
 	}
 
 	//! Gets the resolution of encoder
 	std::size_t getResolution() const
 	{
-		return _ssiMasterDevice.getDataWidth();
+		const auto frameWidth = _ssiMasterDevice.getFrameWidth();
+
+		const auto resolution = frameWidth;
+		assert(resolution >= MinResolution
+			&& resolution <= MaxResolution);
+
+		return resolution;
 	}
 
 private:
