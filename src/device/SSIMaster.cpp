@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "init.hpp"
+
 namespace device {
 
 /**
@@ -10,32 +12,22 @@ namespace device {
  *
  * @param ssi [description]
  * @param bitRate [description]
- * @param dataWidth [description]
+ * @param frameWidth [description]
  */
 SSIMasterBase::SSIMasterBase(std::uint32_t baseAddress,
-	int bitRate, std::size_t dataWidth)
+	int bitRate, std::size_t frameWidth)
 	:	_baseAddress(baseAddress)
 {
+	assert(frameWidth >= MinFrameWidth
+		&& frameWidth <= MaxFrameWidth);
+
+	const auto dataWidth = frameWidth + 1;
 	SSIConfigSetExpClk(_baseAddress,
 		ClockHz,
-		SSI_FRF_TI,
+		SSI_FRF_MOTO_MODE_2,
 		SSI_MODE_MASTER,
 		bitRate,
 		dataWidth);
-}
-
-/**
- * @brief Constructor
- * @details [long description]
- *
- * @param ssi [description]
- * @param e [description]
- * @param h [description]
- */
-SSIMasterBase::SSIMasterBase(std::uint32_t baseAddress)
-	:	SSIMasterBase(baseAddress, DefaultBitRate, DefaultDataWidth)
-{
-
 }
 
 /**
@@ -43,27 +35,47 @@ SSIMasterBase::SSIMasterBase(std::uint32_t baseAddress)
  * @details [long description]
  * @return [description]
  */
-SSIMasterBase::DataType
-SSIMasterBase::readOne()
+void
+SSIMasterBase::readOne(FrameType& frame, ErrorCode& errorCode)
 {
 	assert(!SSIEnabled(_baseAddress));
 	assert(SSIRxEmpty(_baseAddress));
 	assert(SSITxEmpty(_baseAddress));
 
 	// insert one dummy data item into Tx FIFO
-	SSIDataPutNow(_baseAddress, DummyData);
+	SSIDataPutNow(_baseAddress, DummyFrame);
 
 	// start transmission of CLK signal and receive data from slave
 	SSIEnable(_baseAddress);
 
 	// wait for one data item to be received
-	DataType data;
+	SSIDataType data;
 	SSIDataGet(_baseAddress, &data);
 
 	// end transmission
 	SSIDisable(_baseAddress);
 
-	return data;
+	// Check state of MSB, to determine errors
+	// position of MSB is (dataWidth - 1) => frameWidth
+	const auto msbBitIdx = getFrameWidth();
+	const auto isMsbReset = ((data & (1 << msbBitIdx)) == 0);
+	if(isMsbReset)
+	{
+		// MSB is reset, so protocol error occured
+		errorCode = ErrorCode::HwProtocolError;
+		return;
+	}
+
+	// MSB is set, so everything OK.
+	// Clear MSB in datagram
+	data &= ~(1 << msbBitIdx);
+
+	// check, if unused bits are zeros
+	assert((data & (1 << msbBitIdx)) == 0);
+
+	// save result
+	frame = data;
+	errorCode = ErrorCode::Success;
 }
 
 /**
@@ -74,10 +86,12 @@ SSIMasterBase::readOne()
  * @param size [description]
  * @param n [description]
  */
-void
-SSIMasterBase::read(etl::array_view<DataType> buffer, std::size_t n)
+std::size_t
+SSIMasterBase::read(etl::array_view<FrameType> buffer, std::size_t n,
+	ErrorCode& errorCode)
 {
-	assert(buffer != nullptr);
+	static_cast<void>(errorCode);
+
 	assert(n > 0);
 	assert(!SSIEnabled(_baseAddress));
 	assert(SSIRxEmpty(_baseAddress));
@@ -91,7 +105,7 @@ SSIMasterBase::read(etl::array_view<DataType> buffer, std::size_t n)
 		// fill Tx FIFO first with dummy chars
 		for(unsigned i = 0; i < n; ++i)
 		{
-			SSIDataPutNow(_baseAddress, DummyData);
+			SSIDataPutNow(_baseAddress, DummyFrame);
 		}
 
 		// start transmission of CLK signal and receive data from slave
@@ -111,7 +125,7 @@ SSIMasterBase::read(etl::array_view<DataType> buffer, std::size_t n)
 		// fill entire Tx FIFO first with dummy chars
 		for(unsigned i = 0; i < SSI_FIFO_SIZE; ++i)
 		{
-			SSIDataPutNow(_baseAddress, DummyData);
+			SSIDataPutNow(_baseAddress, DummyFrame);
 		}
 
 		// start transmission of CLK signal and receive data from slave
@@ -127,13 +141,55 @@ SSIMasterBase::read(etl::array_view<DataType> buffer, std::size_t n)
 			// queue elapsed CLK transmissions
 			if(elapsed--)
 			{
-				SSIDataPutNow(_baseAddress, DummyData);
+				SSIDataPutNow(_baseAddress, DummyFrame);
 			}
 		}
 	}
 
 	// stop transmission
 	SSIDisable(_baseAddress);
+
+	return 0;
+}
+
+//! Sets bit rate of transmission with SSI slave
+void
+SSIMasterBase::setBitRate(int bitRate)
+{
+	SSIBitRateSet(_baseAddress, ClockHz, bitRate);
+}
+
+//! Gets bit rate of transmission with SSI slave
+int
+SSIMasterBase::getBitRate() const
+{
+	return SSIBitRateGet(_baseAddress, ClockHz);
+}
+
+//! Sets frame width in transmission with SSI slave
+void
+SSIMasterBase::setFrameWidth(std::size_t frameWidth)
+{
+	assert(frameWidth >= MinFrameWidth
+		&& frameWidth <= MaxFrameWidth);
+	const auto dataWidth = frameWidth + 1;
+	SSIDataWidthSet(_baseAddress, dataWidth);
+}
+
+//! Gets frame width in transmission with SSI slave
+std::size_t
+SSIMasterBase::getFrameWidth() const
+{
+	const auto dataWidth = SSIDataWidthGet(_baseAddress);
+	const auto frameWidth = dataWidth - 1;
+	return frameWidth;
+}
+
+//! Determines, whether SSI master is currently communicating with SSI slave
+bool
+SSIMasterBase::isBusy() const
+{
+	return SSIBusy(_baseAddress);
 }
 
 } // namespace device

@@ -6,11 +6,10 @@
 
 #include "util/driverlib/ssi.hpp"
 
-#include "init.hpp"
-
 #include "device/Peripheral.hpp"
 
 #include "array_view.h"
+#include "embxx/error/ErrorCode.h"
 
 namespace device {
 
@@ -19,71 +18,51 @@ class SSIMasterBase
 protected:
 	//! Constructor
 	SSIMasterBase(std::uint32_t baseAddress,
-		int bitRate, std::size_t dataWidth);
-
-	//! Constructor
-	explicit
-	SSIMasterBase(std::uint32_t baseAddress);
+		int bitRate, std::size_t frameWidth);
 
 public:
-	static constexpr std::size_t MinDataWidth = SSI_MIN_DATA_WIDTH;
-	static constexpr std::size_t MaxDataWidth = SSI_MAX_DATA_WIDTH;
-	static_assert(MinDataWidth < MaxDataWidth);
+	using ErrorCode = embxx::error::ErrorCode;
 
-	using DataType = SSIDataType;
-	static_assert(std::numeric_limits<DataType>::digits >= MaxDataWidth,
-		"Underlying data type must have at least MaxDataWidth bits size");
+	static constexpr std::size_t MinFrameWidth = (SSI_MIN_DATA_WIDTH - 1);
+	static constexpr std::size_t MaxFrameWidth = (SSI_MAX_DATA_WIDTH - 1);
+	static_assert(MinFrameWidth < MaxFrameWidth);
 
-	//! Reads one data item from SSI slave in blocking way
-	DataType readOne();
+	using FrameType = SSIDataType;
+	static_assert(std::numeric_limits<FrameType>::digits >= MaxFrameWidth,
+		"Underlying frame type must have at least MaxFrameWidth bits size");
 
-	//! Reads multiple data from SSI slave in blocking way
-	void read(etl::array_view<DataType> buffer, std::size_t n);
+	//! Reads one frame item from SSI slave in blocking way
+	void readOne(FrameType& frame, ErrorCode& errorCode);
+
+	//! Reads multiple frame from SSI slave in blocking way
+	std::size_t read(etl::array_view<FrameType> buffer, std::size_t n,
+		ErrorCode& errorCode);
 
 	//! Sets bit rate of transmission with SSI slave
-	void setBitRate(int bitRate)
-	{
-		SSIBitRateSet(_baseAddress, ClockHz, bitRate);
-	}
+	void setBitRate(int bitRate);
 
 	//! Gets bit rate of transmission with SSI slave
-	int getBitRate() const
-	{
-		return SSIBitRateGet(_baseAddress, ClockHz);
-	}
+	int getBitRate() const;
 
-	//! Sets data width in transmission with SSI slave
-	void setDataWidth(std::size_t dataWidth)
-	{
-		SSIDataWidthSet(_baseAddress, dataWidth);
-	}
+	//! Sets frame width in transmission with SSI slave
+	void setFrameWidth(std::size_t frameWidth);
 
-	//! Gets data width in transmission with SSI slave
-	std::size_t getDataWidth() const
-	{
-		return SSIDataWidthGet(_baseAddress);
-	}
+	//! Gets frame width in transmission with SSI slave
+	std::size_t getFrameWidth() const;
 
 	//! Determines, whether SSI master is currently communicating with SSI slave
-	bool isBusy() const
-	{
-		return SSIBusy(_baseAddress);
-	}
+	bool isBusy() const;
 
 private:
-	constexpr static auto DefaultBitRate = 1000000;
-
-	constexpr static auto DefaultDataWidth = 8;
-
-	constexpr static auto DummyData = DataType();
+	constexpr static auto DummyFrame = FrameType();
 
 	const std::uint32_t _baseAddress;
 };
 
 template<std::uint32_t TBaseAddress, std::uint32_t TPeripheralId>
 class SSIMaster
-	:	public SSIMasterBase,
-		public Peripheral<TPeripheralId>
+	:	public Peripheral<TPeripheralId>,
+		public SSIMasterBase
 {
 public:
 	static_assert(TBaseAddress != 0);
@@ -91,16 +70,9 @@ public:
 
 	using PeripheralType = Peripheral<TPeripheralId>;
 
-	SSIMaster()
-		:	SSIMasterBase(BaseAddress),
-			PeripheralType::Peripheral()
-	{
-
-	}
-
-	SSIMaster(int bitRate, std::size_t dataWidth)
-		:	SSIMasterBase(BaseAddress, bitRate, dataWidth),
-			PeripheralType::Peripheral()
+	SSIMaster(int bitRate, std::size_t frameWidth)
+		:	PeripheralType::Peripheral(),
+			SSIMasterBase(BaseAddress, bitRate, frameWidth)
 	{
 
 	}
