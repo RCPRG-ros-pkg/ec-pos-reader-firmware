@@ -70,7 +70,7 @@ SSIDataGetNow(uint32_t baseAddress)
 inline bool
 SSIEnabled(uint32_t baseAddress)
 {
-	return (HWREG(baseAddress + SSI_O_CR1) |= SSI_CR1_SSE);
+	return (HWREG(baseAddress + SSI_O_CR1) & SSI_CR1_SSE);
 }
 
 /**
@@ -269,7 +269,7 @@ SSIRxNotEmpty(uint32_t baseAddress)
 inline bool
 SSITxFull(uint32_t baseAddress)
 {
-	return !(SSITxNotFull(baseAddress));
+	return (!SSITxNotFull(baseAddress));
 }
 
 /**
@@ -281,4 +281,29 @@ inline bool
 SSITxNotFull(uint32_t baseAddress)
 {
 	return (HWREG(baseAddress + SSI_O_SR) & SSI_SR_TNF);
+}
+
+inline bool
+SSIRxFull(uint32_t baseAddress)
+{
+	return (HWREG(baseAddress + SSI_O_SR) & SSI_SR_RFF);
+}
+
+inline bool
+SSIRxNotFull(uint32_t baseAddress)
+{
+	return (!SSIRxFull(baseAddress));
+}
+
+inline bool
+SSITxEmpty(uint32_t baseAddress)
+{
+	return (HWREG(baseAddress + SSI_O_SR) & SSI_SR_TFE);
+
+}
+
+inline bool
+SSITxNotEmpty(uint32_t baseAddress)
+{
+	return (!SSITxEmpty(baseAddress));
 }
