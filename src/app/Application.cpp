@@ -11,7 +11,7 @@ namespace app {
  */
 Application::Application()
 	:	_blinker(_eventLoop, _gpiofDevice),
-		_encoders(),
+		_encoders(_gpiobDevice.getPin<0>(), _gpiobDevice.getPin<1>()),
 		_etherCAT(_eventLoop, _encoders)
 {
 	UARTprintf("[Application] initialized\n");

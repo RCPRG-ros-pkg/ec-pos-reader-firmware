@@ -8,35 +8,121 @@
 namespace app {
 namespace encoders {
 
-Encoders::Encoders()
-	:	_encoder0SSIMasterDevice(DefaultBitRate, DefaultFrameWidth),
-		_encoder1SSIMasterDevice(DefaultBitRate, DefaultFrameWidth),
-		_encoder0(_encoder0SSIMasterDevice, DefaultResolution),
-		_encoder1(_encoder1SSIMasterDevice, DefaultResolution)
+Encoders::Encoders(RedLEDPin redLEDPin, GreenLEDPin greenLEDPin)
+	:	_ssiMasterDevice(DefaultBitRate, DefaultFrameWidth),
+		_redLEDPin(redLEDPin),
+		_greenLEDPin(greenLEDPin),
+		_ssiEncoder(_ssiMasterDevice, DefaultResolution),
+		_redLED(_redLEDPin),
+		_greenLED(_greenLEDPin)
 {
-	UARTprintf("[Encoders] ready\n");
+	_redLEDPin.setAsDigitalOutput();
+	_greenLEDPin.setAsDigitalOutput();
+
+	detectEncoder();
+
+	assert(_status != Status::Init);
+	assert(_redLED.isTurnedOn()
+		|| _greenLED.isTurnedOn());
 }
 
 void
-Encoders::readPosition(Position& position, ErrorCode& ec)
+Encoders::captureInputs(Position& position, ErrorCode& errorCode)
 {
-	_encoder0.readPosition(position, ec);
-	if(embxx::error::ErrorStatus(ec))
+	assert(_status == Status::Active);
+	assert(_redLED.isTurnedOff());
+	assert(_greenLED.isTurnedOn());
+
+	_ssiEncoder.readPosition(position, errorCode);
+	if(embxx::error::ErrorStatus(errorCode))
 	{
-		// error occured during reading the position
-		// forward error code to the caller and return its previous position
-		UARTprintf("[Encoders] could not read position, ec=%d\n",
-			static_cast<int>(ec));
-		position = _encoder0LastPosition;
+		// Error occured during reading the position.
+		handleReadError(position, errorCode);
 		return;
 	}
 
-	// read position success
-	// backup received position
-	if(position != _encoder0LastPosition)
+	// Read position success. If changed, save current encoder position.
+	if(position != _lastPosition)
 	{
-		_encoder0LastPosition = position;
+		_lastPosition = position;
 	}
+}
+
+void
+Encoders::handleReadError(Position& position, ErrorCode& errorCode)
+{
+	assert(_status == Status::Active);
+	assert(_redLED.isTurnedOff());
+	assert(_greenLED.isTurnedOn());
+	assert(_maxReadRetries >= 0);
+	assert(_readRetries >= 0 && _readRetries < _maxReadRetries);
+	if(++_readRetries == _maxReadRetries)
+	{
+		// The number of retries has been exceeded.
+		UARTprintf("[Encoders] read position error after %d retries, errorCode=%d\n",
+			_maxReadRetries, static_cast<int>(errorCode));
+
+		// Change status of module into failed
+		_status = Status::Failed;
+		_greenLED.turnOff();
+		_redLED.turnOn();
+		return;
+	}
+
+	// The number of retries has been not exceeded.
+	// Return the last known correct position to the caller and signal success
+	position = _lastPosition;
+	errorCode = ErrorCode::Success;
+}
+
+void
+Encoders::detectEncoder()
+{
+	assert(_redLED.isTurnedOff());
+	assert(_greenLED.isTurnedOff());
+	UARTprintf("[Encoders] detecting encoder...\n");
+
+	// Read position and check for errors to determine connection
+	Position position;
+	ErrorCode errorCode;
+	_ssiEncoder.readPosition(position, errorCode);
+	if(embxx::error::ErrorStatus(errorCode))
+	{
+		// Read position error. Assume, that encoder is not connected.
+		UARTprintf("[Encoders] encoder not connected, error code: %d\n",
+			errorCode);
+
+		// Change status of module into failed
+		_status = Status::Failed;
+		_redLED.turnOn();
+		return;
+	}
+
+	// Read position success, encoder ready. Change status to active.
+	UARTprintf("[Encoders] encoder connected, position: %d\n",
+		position);
+	UARTprintf("[Encoders] active\n");
+	_status = Status::Active;
+	_greenLED.turnOn();
+	return;
+}
+
+/**
+ * @brief Returns, whether module is in fail state or not
+ */
+bool
+Encoders::isFailed() const
+{
+	return (_status == Status::Failed);
+}
+
+/**
+ * @brief Returns, whether module is in active state or not
+ */
+bool
+Encoders::isActive() const
+{
+	return (_status == Status::Active);
 }
 
 } // namespace encoders

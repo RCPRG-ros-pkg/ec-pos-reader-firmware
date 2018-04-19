@@ -46,8 +46,7 @@ private:
 
 	// devices
 	device::GPIOF _gpiofDevice;
-
-	// drivers
+	device::GPIOB _gpiobDevice;
 
 	// modules
 	blinker::Blinker _blinker;
