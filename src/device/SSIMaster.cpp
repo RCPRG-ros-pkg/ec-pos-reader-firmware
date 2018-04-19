@@ -21,7 +21,7 @@ SSIMasterBase::SSIMasterBase(std::uint32_t baseAddress,
 	assert(frameWidth >= MinFrameWidth
 		&& frameWidth <= MaxFrameWidth);
 
-	const auto dataWidth = frameWidth + 1;
+	const auto dataWidth = frameWidth + 2;
 	SSIConfigSetExpClk(_baseAddress,
 		ClockHz,
 		SSI_FRF_MOTO_MODE_2,
@@ -36,7 +36,7 @@ SSIMasterBase::SSIMasterBase(std::uint32_t baseAddress,
  * @return [description]
  */
 void
-SSIMasterBase::readOne(FrameType& frame, ErrorCode& errorCode)
+SSIMasterBase::readOne(FrameType& frame, ErrorCode& ec)
 {
 	assert(!SSIEnabled(_baseAddress));
 	assert(SSIRxEmpty(_baseAddress));
@@ -55,101 +55,7 @@ SSIMasterBase::readOne(FrameType& frame, ErrorCode& errorCode)
 	// end transmission
 	SSIDisable(_baseAddress);
 
-	// Check state of MSB, to determine errors
-	// position of MSB is (dataWidth - 1) => frameWidth
-	const auto msbBitIdx = getFrameWidth();
-	const auto isMsbReset = ((data & (1 << msbBitIdx)) == 0);
-	if(isMsbReset)
-	{
-		// MSB is reset, so protocol error occured
-		errorCode = ErrorCode::HwProtocolError;
-		return;
-	}
-
-	// MSB is set, so everything OK.
-	// Clear MSB in datagram
-	data &= ~(1 << msbBitIdx);
-
-	// check, if unused bits are zeros
-	assert((data & (1 << msbBitIdx)) == 0);
-
-	// save result
-	frame = data;
-	errorCode = ErrorCode::Success;
-}
-
-/**
- * @brief Reads multiple data from SSI slave in blocking way
- * @details [long description]
- *
- * @param buffer [description]
- * @param size [description]
- * @param n [description]
- */
-std::size_t
-SSIMasterBase::read(etl::array_view<FrameType> buffer, std::size_t n,
-	ErrorCode& errorCode)
-{
-	static_cast<void>(errorCode);
-
-	assert(n > 0);
-	assert(!SSIEnabled(_baseAddress));
-	assert(SSIRxEmpty(_baseAddress));
-	assert(SSITxEmpty(_baseAddress));
-
-	if(n <= SSI_FIFO_SIZE)
-	{
-		// there are as much data to receive as FIFO capacity
-		// simply fill Tx FIFO and wait for Rx data
-
-		// fill Tx FIFO first with dummy chars
-		for(unsigned i = 0; i < n; ++i)
-		{
-			SSIDataPutNow(_baseAddress, DummyFrame);
-		}
-
-		// start transmission of CLK signal and receive data from slave
-		SSIEnable(_baseAddress);
-
-		// generate Rx data
-		for(auto& data : buffer)
-		{
-			SSIDataGet(_baseAddress, &data);
-		}
-	}
-	else
-	{
-		// there are more data to receive than FIFO capacity
-		// Tx FIFO must be complemented during receive operations
-
-		// fill entire Tx FIFO first with dummy chars
-		for(unsigned i = 0; i < SSI_FIFO_SIZE; ++i)
-		{
-			SSIDataPutNow(_baseAddress, DummyFrame);
-		}
-
-		// start transmission of CLK signal and receive data from slave
-		SSIEnable(_baseAddress);
-
-		// generate Rx data
-		auto elapsed = n - SSI_FIFO_SIZE;
-		for(auto& data : buffer)
-		{
-			// wait for one data item to be received
-			SSIDataGet(_baseAddress, &data);
-
-			// queue elapsed CLK transmissions
-			if(elapsed--)
-			{
-				SSIDataPutNow(_baseAddress, DummyFrame);
-			}
-		}
-	}
-
-	// stop transmission
-	SSIDisable(_baseAddress);
-
-	return 0;
+	processData(data, frame, ec);
 }
 
 //! Sets bit rate of transmission with SSI slave
@@ -172,7 +78,7 @@ SSIMasterBase::setFrameWidth(std::size_t frameWidth)
 {
 	assert(frameWidth >= MinFrameWidth
 		&& frameWidth <= MaxFrameWidth);
-	const auto dataWidth = frameWidth + 1;
+	const auto dataWidth = frameWidth + 2;
 	SSIDataWidthSet(_baseAddress, dataWidth);
 }
 
@@ -181,7 +87,7 @@ std::size_t
 SSIMasterBase::getFrameWidth() const
 {
 	const auto dataWidth = SSIDataWidthGet(_baseAddress);
-	const auto frameWidth = dataWidth - 1;
+	const auto frameWidth = dataWidth - 2;
 	return frameWidth;
 }
 
@@ -190,6 +96,40 @@ bool
 SSIMasterBase::isBusy() const
 {
 	return SSIBusy(_baseAddress);
+}
+
+void
+SSIMasterBase::processData(SSIDataType data,
+	FrameType& frame, ErrorCode& ec)
+{
+	// Check state of MSB and LSB, to determine errors.
+	// Typically, MSB should be set (steady clock HIGH)
+	//  and LSB should be reset (SSI slave is waiting for timeout).
+	const auto dataWidth = SSIDataWidthGet(_baseAddress);
+	const auto msbBitIdx = (dataWidth - 1);
+	if(const auto isMSBReset = ((data & (1 << msbBitIdx)) == 0); isMSBReset)
+	{
+		// MSB is reset, so protocol error occured
+		ec = ErrorCode::HwProtocolError;
+		return;
+	}
+	else if(const auto isLSBSet = ((data & (1 << 0)) != 0); isLSBSet)
+	{
+		// MSB is set, so protocol error occured
+		ec = ErrorCode::HwProtocolError;
+		return;
+	}
+
+	// Clear MSB in datagram and shift right by one to ignore LSB
+	data &= ~(1 << msbBitIdx);
+	data >>= 1;
+
+	// check, if unused bits are zeros
+	assert((data & ~((1 << msbBitIdx) - 1)) == 0);
+
+	// save result
+	frame = data;
+	ec = ErrorCode::Success;
 }
 
 } // namespace device

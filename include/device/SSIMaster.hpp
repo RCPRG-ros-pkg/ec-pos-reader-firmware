@@ -23,8 +23,8 @@ protected:
 public:
 	using ErrorCode = embxx::error::ErrorCode;
 
-	static constexpr std::size_t MinFrameWidth = (SSI_MIN_DATA_WIDTH - 1);
-	static constexpr std::size_t MaxFrameWidth = (SSI_MAX_DATA_WIDTH - 1);
+	static constexpr std::size_t MinFrameWidth = (SSI_MIN_DATA_WIDTH - 2);
+	static constexpr std::size_t MaxFrameWidth = (SSI_MAX_DATA_WIDTH - 2);
 	static_assert(MinFrameWidth < MaxFrameWidth);
 
 	using FrameType = SSIDataType;
@@ -32,11 +32,7 @@ public:
 		"Underlying frame type must have at least MaxFrameWidth bits size");
 
 	//! Reads one frame item from SSI slave in blocking way
-	void readOne(FrameType& frame, ErrorCode& errorCode);
-
-	//! Reads multiple frame from SSI slave in blocking way
-	std::size_t read(etl::array_view<FrameType> buffer, std::size_t n,
-		ErrorCode& errorCode);
+	void readOne(FrameType& frame, ErrorCode& ec);
 
 	//! Sets bit rate of transmission with SSI slave
 	void setBitRate(int bitRate);
@@ -55,6 +51,9 @@ public:
 
 private:
 	constexpr static auto DummyFrame = FrameType();
+
+	void processData(SSIDataType data,
+		FrameType& frame, ErrorCode& ec);
 
 	const std::uint32_t _baseAddress;
 };
