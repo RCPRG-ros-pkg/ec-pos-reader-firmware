@@ -61,7 +61,7 @@ private:
 		EventLoop, embxx::util::StaticFunction<void()>>;
 
 	// components
-	using LED = component::LED<LEDPin, component::LogicDesign::ActiveHigh>;
+	using LED = component::LED<LEDPin>;
 
 	void execWait();
 
