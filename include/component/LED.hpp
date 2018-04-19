@@ -8,7 +8,7 @@ enum class LogicDesign
 	ActiveLow
 };
 
-template<typename TPin, LogicDesign TLogicDesign>
+template<typename TPin, LogicDesign TLogicDesign = LogicDesign::ActiveHigh>
 class LED
 {
 public:
