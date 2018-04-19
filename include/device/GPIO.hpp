@@ -65,6 +65,12 @@ public:
 		}
 	};
 
+	template<std::size_t TPosition>
+	Pin<TPosition> getPin()
+	{
+		return Pin<TPosition>(*this);
+	}
+
 	std::uint32_t getBaseAddress() const
 	{
 		return _baseAddress;
