@@ -145,20 +145,23 @@ EtherCAT::captureInputs()
 {
 	// copy the sensors to the sync input.
 
-	Position position;
-	ErrorCode ec;
-	_encoders.readPosition(position, ec);
-	if(embxx::error::ErrorStatus(ec))
+	if(_encoders.isActive())
 	{
-		// error occured during read operation
-		UARTprintf("[EtherCAT] could not capture inputs, ec=%d\n",
-			static_cast<int>(ec));
-		APPL_UnexpectedError();
-		return;
-	}
+		Position position;
+		ErrorCode ec;
+		_encoders.captureInputs(position, ec);
+		if(embxx::error::ErrorStatus(ec))
+		{
+			// error occured during read operation
+			UARTprintf("[EtherCAT] could not capture inputs, ec=%d\n",
+				static_cast<int>(ec));
+			APPL_UnexpectedError();
+			return;
+		}
 
-	// inputs capture success
-	_encoder0Position = position;
+		// inputs capture success
+		_encoder0Position = position;
+	}
 
 	/*
 	** Always update the ABCC with the latest write process data at the end of
