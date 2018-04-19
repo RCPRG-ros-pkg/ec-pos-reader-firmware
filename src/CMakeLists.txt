@@ -66,7 +66,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 # add 'bin' target - prepary binary image of program
 add_custom_target(bin
-    COMMAND /opt/embedded/bleeding-edge-toolchain/installNative/bin/arm-none-eabi-objcopy
+    COMMAND /opt/embedded/gcc-arm-none-eabi-7-2017-q4-major/bin/arm-none-eabi-objcopy
         --output-target=binary      # binary format direct to MCU
         ${PROJECT_NAME}      # source ELF file
         ${PROJECT_NAME}.bin  # target BIN file
@@ -79,12 +79,12 @@ add_custom_target(flash
 
 # add 'objdump' target - makes objdump from compiled program without code snippets
 add_custom_target(objdump
-    COMMAND /opt/embedded/bleeding-edge-toolchain/installNative/bin/arm-none-eabi-objdump -d -C ${PROJECT_NAME} >objdump
+    COMMAND /opt/embedded/gcc-arm-none-eabi-7-2017-q4-major/bin/arm-none-eabi-objdump -d -C ${PROJECT_NAME} >objdump
     DEPENDS ${PROJECT_NAME})
 
 # add 'objdump-full' target - makes objdump, but with full code listing
 add_custom_target(objdump-full
-    COMMAND /opt/embedded/bleeding-edge-toolchain/installNative/bin/arm-none-eabi-objdump -D -r -t -x -S -C ${PROJECT_NAME} >objdump
+    COMMAND /opt/embedded/gcc-arm-none-eabi-7-2017-q4-major/bin/arm-none-eabi-objdump -D -r -t -x -S -C ${PROJECT_NAME} >objdump
     DEPENDS ${PROJECT_NAME})
 
 # add 'debug' target - write program and start debug session
