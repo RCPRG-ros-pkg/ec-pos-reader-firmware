@@ -12,8 +12,8 @@ set(MCU TM4C123GH6PM)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY CACHE STRING "" FORCE)
 
 # specify the cross compiler
-set(CMAKE_C_COMPILER /opt/embedded/bleeding-edge-toolchain/installNative/bin/arm-none-eabi-gcc)
-set(CMAKE_CXX_COMPILER /opt/embedded/bleeding-edge-toolchain/installNative/bin/arm-none-eabi-g++)
+set(CMAKE_C_COMPILER /opt/embedded/gcc-arm-none-eabi-7-2017-q4-major/bin/arm-none-eabi-gcc)
+set(CMAKE_CXX_COMPILER /opt/embedded/gcc-arm-none-eabi-7-2017-q4-major/bin/arm-none-eabi-g++)
 
 # Flags directed into TM4C123x processors
 set(CMAKE_C_FLAGS "\
@@ -23,6 +23,7 @@ set(CMAKE_C_FLAGS "\
 -mfpu=fpv4-sp-d16 \
 -mthumb \
 -mfloat-abi=hard \
+-munaligned-access \
 -DPART_${MCU} \
 -DTARGET_IS_TM4C123_RA3"
 CACHE STRING "" FORCE)
@@ -34,6 +35,7 @@ set(CMAKE_CXX_FLAGS "\
 -mfpu=fpv4-sp-d16 \
 -mthumb \
 -mfloat-abi=hard \
+-munaligned-access \
 -DPART_${MCU} \
 -DTARGET_IS_TM4C123_RA3"
 CACHE STRING "" FORCE)

@@ -1,5 +1,7 @@
 add_library(device
-	SSIMasterDevice.cpp
+	GPIO.cpp
+	GPTM.cpp
+	SSIMaster.cpp
 )
 
 target_link_libraries(device

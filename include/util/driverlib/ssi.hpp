@@ -7,43 +7,46 @@
 
 #pragma once
 
-#include <cstdint>
-#include <cassert>
+#include <stdint.h>
+#include <stddef.h>
+#include <assert.h>
 #include "tivaware/inc/hw_types.h"
 #include "tivaware/inc/hw_memmap.h"
 #include "tivaware/inc/hw_ssi.h"
 #include "tivaware/driverlib/ssi.h"
 
-//! Specifies SSI serial clock polarity in idle mode. Used by SSIPolaritySet
-enum class SSIPolarity
-{
-	SteadyLow, //! SSInCLK will be steady LOW when idle
-	SteadyHigh //! SSInCLK will be steady HIGH when idle
-};
+#define SSI_POL_STEADY_LOW 0
+#define SSI_POL_STEADY_HIGH 1
 
-//! Specifies SSI mode. Used by SSIGetMode
-enum class SSIMode
-{
-	Master = SSI_MODE_MASTER,
-	Slave = SSI_MODE_SLAVE
-};
+#define SSI_MIN_DATA_WIDTH 4
+#define SSI_MAX_DATA_WIDTH 16
 
-std::uint32_t SSIGetDataNow(std::uint32_t baseAddress);
-bool SSIEnabled(std::uint32_t baseAddress);
-void SSIEOTEnable(std::uint32_t baseAddress);
-void SSIEOTDisable(std::uint32_t baseAddress);
-int SSIGetBitRate(std::uint32_t baseAddress);
-std::size_t SSIGetDataWidth(std::uint32_t baseAddress);
-SSIMode SSIGetMode(std::uint32_t baseAddress);
-bool SSIIdle(std::uint32_t baseAddress);
-std::uint32_t SSIMaskedIntStatus(std::uint32_t baseAddress);
-void SSIPolaritySet(std::uint32_t baseAddress, SSIPolarity ssiPolarity);
-void SSIPutDataNow(std::uint32_t baseAddress, std::uint32_t data);
-std::uint32_t SSIRawIntStatus(std::uint32_t baseAddress);
-bool SSIRxEmpty(std::uint32_t baseAddress);
-bool SSIRxNotEmpty(std::uint32_t baseAddress);
-bool SSITxFull(std::uint32_t baseAddress);
-bool SSITxNotFull(std::uint32_t baseAddress);
+#define SSI_FIFO_SIZE 8
+
+typedef uint32_t SSIDataType;
+
+uint32_t SSIDataGetNow(uint32_t baseAddress);
+bool SSIEnabled(uint32_t baseAddress);
+void SSIEOTEnable(uint32_t baseAddress);
+void SSIEOTDisable(uint32_t baseAddress);
+uint32_t SSIBitRateGet(uint32_t baseAddress, uint32_t clockRate);
+void SSIBitRateSet(uint32_t baseAddress, uint32_t clockRate, uint32_t bitRate);
+size_t SSIDataWidthGet(uint32_t baseAddress);
+void SSIDataWidthSet(uint32_t baseAddress, size_t dataWidth);
+uint32_t SSIModeGet(uint32_t baseAddress);
+bool SSIIdle(uint32_t baseAddress);
+uint32_t SSIMaskedIntStatus(uint32_t baseAddress);
+void SSIPolaritySet(uint32_t baseAddress, uint32_t polarity);
+void SSIDataPutNow(uint32_t baseAddress, SSIDataType data);
+uint32_t SSIRawIntStatus(uint32_t baseAddress);
+bool SSIRxFull(uint32_t baseAddress);
+bool SSIRxNotFull(uint32_t baseAddress);
+bool SSIRxEmpty(uint32_t baseAddress);
+bool SSIRxNotEmpty(uint32_t baseAddress);
+bool SSITxFull(uint32_t baseAddress);
+bool SSITxNotFull(uint32_t baseAddress);
+bool SSITxEmpty(uint32_t baseAddress);
+bool SSITxNotEmpty(uint32_t baseAddress);
 
 /**
  * @brief Force gets data from SSI receiver FIFO
@@ -51,8 +54,8 @@ bool SSITxNotFull(std::uint32_t baseAddress);
  *
  * @param baseAddress base address of SSI module
  */
-inline std::uint32_t
-SSIGetDataNow(std::uint32_t baseAddress)
+inline uint32_t
+SSIDataGetNow(uint32_t baseAddress)
 {
 	assert(SSIRxNotEmpty(SSI0_BASE));
 	return (HWREG(baseAddress + SSI_O_DR));
@@ -65,9 +68,9 @@ SSIGetDataNow(std::uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline bool
-SSIEnabled(std::uint32_t baseAddress)
+SSIEnabled(uint32_t baseAddress)
 {
-	return (HWREG(baseAddress + SSI_O_CR1) |= SSI_CR1_SSE);
+	return (HWREG(baseAddress + SSI_O_CR1) & SSI_CR1_SSE);
 }
 
 /**
@@ -78,7 +81,7 @@ SSIEnabled(std::uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline void
-SSIEOTEnable(std::uint32_t baseAddress)
+SSIEOTEnable(uint32_t baseAddress)
 {
 	const auto ssicr1 = HWREG(baseAddress + SSI_O_CR1);
 	assert(!(ssicr1 & SSI_CR1_MS)); // master mode must be enabled
@@ -93,9 +96,26 @@ SSIEOTEnable(std::uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline void
-SSIEOTDisable(std::uint32_t baseAddress)
+SSIEOTDisable(uint32_t baseAddress)
 {
 	HWREG(baseAddress + SSI_O_CR1) &= (~SSI_CR1_EOT);
+}
+
+/**
+ * @brief Sets bit rate of SSI transmission
+ * @details [long description]
+ *
+ * @param baseAddress [description]
+ * @param clockRate [description]
+ * @param bitRate [description]
+ */
+inline void
+SSIBitRateSet(uint32_t baseAddress, uint32_t clockRate, uint32_t bitRate)
+{
+	static_cast<void>(baseAddress);
+	static_cast<void>(clockRate);
+	static_cast<void>(bitRate);
+	assert(!"Not implemented");
 }
 
 /**
@@ -103,8 +123,8 @@ SSIEOTDisable(std::uint32_t baseAddress)
  * @details
  * @param baseAddress base address of SSI module
  */
-inline std::size_t
-SSIGetDataWidth(std::uint32_t baseAddress)
+inline size_t
+SSIDataWidthGet(uint32_t baseAddress)
 {
 	const auto dss = (HWREG(baseAddress + SSI_O_CR0) & SSI_CR0_DSS_M);
 	assert(dss >= 3 && dss <= 15);
@@ -114,17 +134,28 @@ SSIGetDataWidth(std::uint32_t baseAddress)
 }
 
 /**
- * @brief Gets bit rate of SSI module
- * @details TODO
+ * @brief Sets data width, with which SSI will work
+ * @details [long description]
  *
- * @param baseAddress base address of SSI module
+ * @param baseAddress [description]
+ * @param dataWidth [description]
  */
-inline int
-SSIGetBitRate(std::uint32_t baseAddress)
+inline void
+SSIDataWidthSet(uint32_t baseAddress, size_t dataWidth)
 {
-	static_cast<void>(baseAddress);
-	assert(false); // not implemented
-	return 0;
+	assert(dataWidth >= 4 && dataWidth <= 16);
+
+	// get current value of SSICR0 register
+	uint32_t cr0 = HWREG(baseAddress + SSI_O_CR0);
+
+	// clear DSS bitfield
+	cr0 &= ~SSI_CR0_DSS_M;
+
+	// write new DSS bitfield
+	cr0 |= (dataWidth - 1);
+
+	// write new value to SSICR0 register
+	HWREG(baseAddress + SSI_O_CR0) |= cr0;
 }
 
 /**
@@ -133,11 +164,11 @@ SSIGetBitRate(std::uint32_t baseAddress)
  *
  * @param baseAddress base address of SSI module
  */
-inline SSIMode
-SSIGetMode(std::uint32_t baseAddress)
+inline uint32_t
+SSIModeGet(uint32_t baseAddress)
 {
 	return (HWREG(baseAddress + SSI_O_CR1) & SSI_CR1_MS)
-		? SSIMode::Slave : SSIMode::Master;
+		? SSI_MODE_SLAVE : SSI_MODE_MASTER;
 }
 
 /**
@@ -147,7 +178,7 @@ SSIGetMode(std::uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline bool
-SSIIdle(std::uint32_t baseAddress)
+SSIIdle(uint32_t baseAddress)
 {
 	return !(HWREG(baseAddress + SSI_O_SR) & SSI_SR_BSY);
 }
@@ -158,8 +189,8 @@ SSIIdle(std::uint32_t baseAddress)
  *
  * @param baseAddress base address of SSI module
  */
-inline std::uint32_t
-SSIMaskedIntStatus(std::uint32_t baseAddress)
+inline uint32_t
+SSIMaskedIntStatus(uint32_t baseAddress)
 {
 	return (HWREG(baseAddress + SSI_O_MIS));
 }
@@ -174,11 +205,11 @@ SSIMaskedIntStatus(std::uint32_t baseAddress)
  * @param ssiPolarity polarity of SSI serial clock
  */
 inline void
-SSIPolaritySet(std::uint32_t baseAddress, SSIPolarity ssiPolarity)
+SSIPolaritySet(uint32_t baseAddress, uint32_t polarity)
 {
 	const auto ssicr0 = HWREG(baseAddress + SSI_O_CR0);
 	HWREG(baseAddress + SSI_O_CR0) =
-		(ssiPolarity == SSIPolarity::SteadyHigh) ?
+		(polarity == SSI_POL_STEADY_HIGH) ?
 			(ssicr0 | SSI_CR0_SPO) : (ssicr0 & (~SSI_CR0_SPO));
 }
 
@@ -190,7 +221,7 @@ SSIPolaritySet(std::uint32_t baseAddress, SSIPolarity ssiPolarity)
  * @param data data to send
  */
 inline void
-SSIPutDataNow(std::uint32_t baseAddress, std::uint32_t data)
+SSIDataPutNow(uint32_t baseAddress, SSIDataType data)
 {
 	assert(SSITxNotFull(baseAddress));
 	HWREG(baseAddress + SSI_O_DR) = data;
@@ -202,8 +233,8 @@ SSIPutDataNow(std::uint32_t baseAddress, std::uint32_t data)
  *
  * @param baseAddress base address of SSI module
  */
-inline std::uint32_t
-SSIRawIntStatus(std::uint32_t baseAddress)
+inline uint32_t
+SSIRawIntStatus(uint32_t baseAddress)
 {
 	return (HWREG(baseAddress + SSI_O_RIS));
 }
@@ -214,7 +245,7 @@ SSIRawIntStatus(std::uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline bool
-SSIRxEmpty(std::uint32_t baseAddress)
+SSIRxEmpty(uint32_t baseAddress)
 {
 	return !(SSIRxNotEmpty(baseAddress));
 }
@@ -225,7 +256,7 @@ SSIRxEmpty(std::uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline bool
-SSIRxNotEmpty(std::uint32_t baseAddress)
+SSIRxNotEmpty(uint32_t baseAddress)
 {
 	return (HWREG(baseAddress + SSI_O_SR) & SSI_SR_RNE);
 }
@@ -236,9 +267,9 @@ SSIRxNotEmpty(std::uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline bool
-SSITxFull(std::uint32_t baseAddress)
+SSITxFull(uint32_t baseAddress)
 {
-	return !(SSITxNotFull(baseAddress));
+	return (!SSITxNotFull(baseAddress));
 }
 
 /**
@@ -247,7 +278,32 @@ SSITxFull(std::uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline bool
-SSITxNotFull(std::uint32_t baseAddress)
+SSITxNotFull(uint32_t baseAddress)
 {
 	return (HWREG(baseAddress + SSI_O_SR) & SSI_SR_TNF);
+}
+
+inline bool
+SSIRxFull(uint32_t baseAddress)
+{
+	return (HWREG(baseAddress + SSI_O_SR) & SSI_SR_RFF);
+}
+
+inline bool
+SSIRxNotFull(uint32_t baseAddress)
+{
+	return (!SSIRxFull(baseAddress));
+}
+
+inline bool
+SSITxEmpty(uint32_t baseAddress)
+{
+	return (HWREG(baseAddress + SSI_O_SR) & SSI_SR_TFE);
+
+}
+
+inline bool
+SSITxNotEmpty(uint32_t baseAddress)
+{
+	return (!SSITxEmpty(baseAddress));
 }
