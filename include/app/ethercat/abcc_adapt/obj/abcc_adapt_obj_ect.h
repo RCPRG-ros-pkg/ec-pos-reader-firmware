@@ -38,7 +38,7 @@
 ** Attribute 6: Manufacturer device name (Array of CHAR)
 */
 #define ECT_IA_MANF_DEVICE_NAME_ENABLE          TRUE
-#define ECT_IA_MANF_DEVICE_NAME_VALUE           "VSA encoders"
+#define ECT_IA_MANF_DEVICE_NAME_VALUE           "RCPRG EtherCAT Position Reader"
 
 /*
 ** Attribute 7: Manufacturer hardware version (Array of CHAR)
