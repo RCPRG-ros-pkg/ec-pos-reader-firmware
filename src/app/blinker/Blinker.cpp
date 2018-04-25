@@ -3,11 +3,6 @@
 #include <cstdint>
 #include "tivaware/utils/uartstdio.h"
 
-namespace device {
-template<>
-DeadlineTimer<TIMER0_BASE>* DeadlineTimer<TIMER0_BASE>::_instance = nullptr;
-} // namespace device
-
 namespace app {
 namespace blinker {
 

@@ -4,4 +4,5 @@ add_library(app_blinker
 
 target_link_libraries(app_blinker
 	device
+	util_driverlib
 )

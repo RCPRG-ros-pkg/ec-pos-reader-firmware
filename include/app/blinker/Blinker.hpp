@@ -46,7 +46,7 @@ private:
 	template<typename T, std::size_t TSize>
 	using Function = embxx::util::StaticFunction<T, TSize>;
 
-	using TimerDevice = device::DeadlineTimer<TIMER0_BASE>;
+	using TimerDevice = device::DeadlineTimer<TIMER0_BASE, INT_TIMER0A>;
 	using TimerCallback = Function<void(ErrorCode), 1 * sizeof(void*)>;
 	using DeadlineTimer =
 		driver::DeadlineTimer<EventLoop, TimerDevice, TimerCallback>;

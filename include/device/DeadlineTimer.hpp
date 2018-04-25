@@ -4,7 +4,10 @@
 #include <chrono>
 #include <cassert>
 
+#include "tivaware/inc/hw_ints.h"
+
 #include "util/driverlib/timer.hpp"
+#include "util/driverlib/interrupt.hpp"
 
 #include "init.hpp"
 
@@ -17,12 +20,15 @@ namespace {
 
 } // namespace
 
-template<std::uint32_t TBaseAddress>
+template<std::uint32_t TBaseAddress, std::uint32_t TIntNumber>
 class DeadlineTimer
 {
 public:
 	constexpr static std::uint32_t BaseAddress = TBaseAddress;
 	static_assert(BaseAddress != 0);
+
+	constexpr static std::uint32_t IntNumber = TIntNumber;
+	static_assert(IntNumber < NUM_INTERRUPTS);
 
 	constexpr static int Frequency = ClockHz;
 
@@ -35,14 +41,13 @@ public:
 
 	DeadlineTimer()
 	{
-		assert(_instance == nullptr);
-		_instance = this;
-
 		// Configure timer to work as full-width, one shot
 		MAP_TimerConfigure(BaseAddress, TIMER_CFG_ONE_SHOT);
 
-		// Register interrupt handler
-		TimerIntRegister(BaseAddress, TIMER_A, timerISR);
+		// Register interrupt handler and enable it
+		IntRegister(IntNumber, timerISR);
+		IntUserDataSet(IntNumber, static_cast<void*>(this));
+		IntEnable(IntNumber);
 
 		// After construction, timer should be idle
 		assert(!checkWaiting(EventLoopCtx()));
@@ -56,11 +61,10 @@ public:
 		// During destruction, timer should be idle
 		assert(!checkWaiting(EventLoopCtx()));
 
-		// Unregister interrupt handler
-		TimerIntUnregister(BaseAddress, TIMER_A);
-
-		assert(_instance != nullptr);
-		_instance = nullptr;
+		// Disable interrupt handler and unregister it
+		IntDisable(IntNumber);
+		IntUserDataUnset(IntNumber);
+		IntUnregister(IntNumber);
 	}
 
 	template<typename TFunc>
@@ -204,12 +208,16 @@ private:
 
 	static void timerISR()
 	{
-		assert(_instance != nullptr);
-		_instance->handleISR(InterruptCtx());
+		using ThisType = DeadlineTimer<BaseAddress, IntNumber>;
+
+		auto userData = IntUserDataGet(IntNumber);
+		auto instance = static_cast<ThisType*>(userData);
+
+		assert(instance != nullptr);
+		instance->handleISR(InterruptCtx());
 	}
 
 	TimeoutCallback _timeoutCallback;
-	static DeadlineTimer<BaseAddress>* _instance;
 };
 
 } // namespace device
