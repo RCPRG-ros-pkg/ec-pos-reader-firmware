@@ -6,8 +6,6 @@
 
 #include "util/driverlib/timer.hpp"
 
-#include "device/Peripheral.hpp"
-
 #include "init.hpp"
 
 #include "embxx/util/StaticFunction.h"

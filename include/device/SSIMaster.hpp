@@ -6,8 +6,6 @@
 
 #include "util/driverlib/ssi.hpp"
 
-#include "device/Peripheral.hpp"
-
 #include "array_view.h"
 #include "embxx/error/ErrorCode.h"
 
@@ -58,20 +56,16 @@ private:
 	const std::uint32_t _baseAddress;
 };
 
-template<std::uint32_t TBaseAddress, std::uint32_t TPeripheralId>
+template<std::uint32_t TBaseAddress>
 class SSIMaster
-	:	public Peripheral<TPeripheralId>,
-		public SSIMasterBase
+	:	public SSIMasterBase
 {
 public:
 	static_assert(TBaseAddress != 0);
 	constexpr static auto BaseAddress = TBaseAddress;
 
-	using PeripheralType = Peripheral<TPeripheralId>;
-
 	SSIMaster(int bitRate, std::size_t frameWidth)
-		:	PeripheralType::Peripheral(),
-			SSIMasterBase(BaseAddress, bitRate, frameWidth)
+		:	SSIMasterBase(BaseAddress, bitRate, frameWidth)
 	{
 
 	}
