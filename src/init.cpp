@@ -29,11 +29,15 @@ void preinitHardware()
 //! Postcondition: clockHz will be set to non-zero value
 void initHardware()
 {
-	// clockHz = MAP_SysCtlClockGet();
-	// assert(clockHz != 0);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI1);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
+	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
 
 	// Configure GPIO of pins of SSI0 module. Pull-up SSI0CLK pin
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 	MAP_GPIOPinConfigure(GPIO_PA2_SSI0CLK);
 	MAP_GPIOPinConfigure(GPIO_PA4_SSI0RX);
 	MAP_GPIOPinTypeSSI(GPIO_PORTA_BASE,
@@ -45,7 +49,6 @@ void initHardware()
 void initIO()
 {
 	// enable GPIO for UART0 module
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 	MAP_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
 	constexpr auto IOBaudRate = 115200;
