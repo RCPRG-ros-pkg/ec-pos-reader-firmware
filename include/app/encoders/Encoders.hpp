@@ -1,12 +1,16 @@
 #pragma once
 
 #include "device/SSIMaster.hpp"
-#include "device/GPIO.hpp"
+#include "device/OutputPin.hpp"
 
 #include "component/SSIEncoder.hpp"
 #include "component/LED.hpp"
 
+#include <tuple>
+
 #include "embxx/error/ErrorCode.h"
+
+#include "app/encoders/Encoder.hpp"
 
 namespace app {
 namespace encoders {
@@ -17,13 +21,18 @@ public:
 	using ErrorCode = embxx::error::ErrorCode;
 	using Position = component::Position;
 
-	// devices typedefs
-	using SSIMasterDevice = device::SSIMaster<SSI0_BASE, SYSCTL_PERIPH_SSI0>;
-	using RedLEDPin = device::GPIOB::Pin<0>;
-	using GreenLEDPin = device::GPIOB::Pin<1>;
+	using Encoder0 = Encoder<SSI0_BASE,
+		GPIO_PORTB_BASE, 0,
+		GPIO_PORTB_BASE, 1>;
+
+	using Encoder1 = Encoder<SSI2_BASE,
+		GPIO_PORTB_BASE, 2,
+		GPIO_PORTB_BASE, 3>;
+
+	using EncodersList = std::tuple<Encoder0, Encoder1>;
 
 	//! Constructor
-	Encoders(RedLEDPin redLEDPin, GreenLEDPin greenLEDPin);
+	Encoders();
 
 	//! Captures current encoder position or returns and error on fail
 	void captureInputs(Position& position, ErrorCode& ec);
@@ -35,48 +44,7 @@ public:
 	bool isActive() const;
 
 private:
-	// components typedefs
-	using SSIEncoder = component::SSIEncoder<SSIMasterDevice>;
-	using RedLED = component::LED<RedLEDPin>;
-	using GreenLED = component::LED<GreenLEDPin>;
-
-	// Default SSI settings for encoders.
-	constexpr static auto DefaultBitRate = 1500000;
-	constexpr static auto DefaultFrameWidth = 13;
-	constexpr static auto DefaultResolution = 13;
-
-	//! Default value of maximum number of retries to read the position.
-	constexpr static auto DefaultMaxReadRetries = 16;
-
-	//! Represents internal status of module.
-	enum class Status
-	{
-		Init, //< Occurs only in constructing phase.
-		Active, //< Encoder is detected and it is correct operating.
-		Failed //< Encoder not detected or number of failed reads exceeded.
-	};
-
-	//! Handles read error reported by `captureInputs`.
-	void handleReadError(Position& position, ErrorCode& ec);
-
-	//! Detects, if encoder is connected or not.
-	void detectEncoder();
-
-	// devices members
-	SSIMasterDevice _ssiMasterDevice;
-	RedLEDPin _redLEDPin;
-	GreenLEDPin _greenLEDPin;
-
-	// components members
-	SSIEncoder _ssiEncoder;
-	RedLED _redLED;
-	GreenLED _greenLED;
-
-	// other members
-	Position _lastPosition;
-	int _maxReadRetries = DefaultMaxReadRetries;
-	int _readRetries = 0;
-	Status _status = Status::Init;
+	EncodersList _encodersList;
 };
 
 } // namespace encoders
