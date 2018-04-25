@@ -5,6 +5,10 @@
 cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
 project(vsa-encoders-ecat-firmware VERSION 0.1.0 LANGUAGES CXX C)
 
+# include(CheckIPOSupported)
+# check_ipo_supported(RESULT supported OUTPUT error)
+# set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 # helper cmake scripts
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
