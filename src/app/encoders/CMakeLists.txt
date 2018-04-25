@@ -1,5 +1,5 @@
 add_library(app_encoders
-	Encoders.cpp
+	EncoderMgr.cpp
 )
 
 target_link_libraries(app_encoders

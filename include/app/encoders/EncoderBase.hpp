@@ -16,7 +16,7 @@ namespace encoders {
 template<std::uint32_t TSSIBase,
 	std::uint32_t RedLEDPinGPIOBase, std::size_t RedLEDPinNumber,
 	std::uint32_t GreenLEDPinGPIOBase, std::size_t GreenLEDPinNumber>
-class Encoder
+class EncoderBase
 {
 public:
 	// devices typedefs
@@ -28,7 +28,7 @@ public:
 	using Position = component::Position;
 
 	//! Constructor
-	Encoder()
+	EncoderBase()
 		:	_ssiMasterDevice(DefaultBitRate, DefaultFrameWidth),
 			_redLEDPin(),
 			_greenLEDPin(),
