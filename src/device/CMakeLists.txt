@@ -1,6 +1,5 @@
 add_library(device
-	GPIO.cpp
-	GPTM.cpp
+	OutputPin.cpp
 	SSIMaster.cpp
 )
 
