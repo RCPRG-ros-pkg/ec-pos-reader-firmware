@@ -189,7 +189,6 @@ static appl_IpSettingsType appl_sIpSettings =
 **------------------------------------------------------------------------------
 */
 static BOOL appl_fSetAddr = FALSE;
-static BOOL appl_fSetAddrInProgress = FALSE;
 
 /*------------------------------------------------------------------------------
 ** Network baud rate.
@@ -197,7 +196,6 @@ static BOOL appl_fSetAddrInProgress = FALSE;
 */
 static UINT8 appl_bNwBaudRate;
 static BOOL  appl_fSetBaudRate = FALSE;
-static BOOL  appl_fSetBaudRateInProgress = FALSE;
 
 /*------------------------------------------------------------------------------
 ** Flags to keep track of if the network type supports node ID/IP address
@@ -245,9 +243,7 @@ static ABCC_CmdSeqCmdStatusType UpdateIpAddress( ABP_MsgType* psMsg );
 static ABCC_CmdSeqCmdStatusType UpdateNetmask( ABP_MsgType* psMsg );
 static ABCC_CmdSeqCmdStatusType UpdateGateway( ABP_MsgType* psMsg );
 static ABCC_CmdSeqCmdStatusType UpdateDhcp( ABP_MsgType* psMsg );
-static void UpdateAddressDone( void );
 static ABCC_CmdSeqCmdStatusType UpdateBaudRate( ABP_MsgType* psMsg );
-static void UpdateBaudRateDone( void );
 
 /*------------------------------------------------------------------------------
 ** User init sequence. See abcc_cmd_seq_if.h
@@ -260,31 +256,6 @@ static const ABCC_CmdSeqType appl_asUserInitCmdSeq[] =
    ABCC_CMD_SEQ( UpdateGateway, NULL ),
    ABCC_CMD_SEQ( UpdateDhcp, NULL ),
    ABCC_CMD_SEQ( UpdateNodeAddress, NULL ),
-   ABCC_CMD_SEQ( UpdateBaudRate, NULL ),
-   ABCC_CMD_SEQ_END()
-};
-
-/*------------------------------------------------------------------------------
-** Set IP or node address.
-** Sequence triggered when the address switch has changed value.
-** See abcc_cmd_seq_if.h.
-**------------------------------------------------------------------------------
-*/
-static const ABCC_CmdSeqType appl_asAddressChangedCmdSeq[] =
-{
-   ABCC_CMD_SEQ( UpdateIpAddress, NULL ),
-   ABCC_CMD_SEQ( UpdateNodeAddress, NULL ),
-   ABCC_CMD_SEQ_END()
-};
-
-/*------------------------------------------------------------------------------
-** Set baud rate.
-** Sequence triggered when the baud rate switch has changed value.
-** See abcc_cmd_seq_if.h.
-**------------------------------------------------------------------------------
-*/
-static const ABCC_CmdSeqType appl_asBaudRateChangedCmdSeq[] =
-{
    ABCC_CMD_SEQ( UpdateBaudRate, NULL ),
    ABCC_CMD_SEQ_END()
 };
@@ -380,18 +351,6 @@ static ABCC_CmdSeqRespStatusType HandleExceptionInfoResp( ABP_MsgType* psMsg )
 
    (void)bExceptionInfo;
    return( ABCC_EXEC_NEXT_COMMAND );
-}
-
-/*------------------------------------------------------------------------------
-**  Notification that the address is updated.
-**
-**  This function is a part of a command sequence. See description of
-**  ABCC_CmdSeqDoneHandler type in cmd_seq_if.h
-**------------------------------------------------------------------------------
-*/
-static void UpdateAddressDone( void )
-{
-   appl_fSetAddrInProgress = FALSE;
 }
 
 /*------------------------------------------------------------------------------
@@ -524,17 +483,7 @@ static ABCC_CmdSeqCmdStatusType UpdateNodeAddress( ABP_MsgType* psMsg )
    return( ABCC_SKIP_COMMAND );
 }
 
-/*------------------------------------------------------------------------------
-**  Notification that the baud rate is updated.
-**
-**  This function is a part of a command sequence. See description of
-**  ABCC_CmdSeqDoneHandler type in cmd_seq_if.h
-**------------------------------------------------------------------------------
-*/
-static void UpdateBaudRateDone( void )
-{
-   appl_fSetBaudRateInProgress = FALSE;
-}
+
 
 /*------------------------------------------------------------------------------
 **  Builds the command for setting the baud rate (set attribute).
@@ -742,75 +691,6 @@ APPL_AbccHandlerStatusType APPL_HandleAbcc( void )
    }
 
    return( eModuleStatus );
-}
-
-void APPL_SetAddress( UINT8 bSwitchValue )
-{
-   appl_fSetAddr = TRUE;
-
-   if( appl_fSetAddrInProgress )
-   {
-      /*
-      ** Address updated next time
-      */
-      return;
-   }
-
-   if( appl_fUserInitDone == FALSE )
-   {
-      /*
-      ** HW switch 1 will the last octet in the IP address
-      ** for applicable networks ( 192.168.0.X )
-      */
-      appl_sIpSettings.sAddress.uValue.abValue[ 3 ] = bSwitchValue;
-
-      /*
-      ** Switch 1 is node address for applicable networks
-      */
-      appl_bNwNodeAddress = bSwitchValue;
-
-      /*
-      ** Indicate to application object that the address is set by HW switches
-      */
-   #if APP_OBJ_ENABLE
-      APP_HwConfAddress( TRUE );
-   #endif
-   }
-   else if( appl_bNwNodeAddress != bSwitchValue )
-   {
-     /*
-     ** Start command sequence to update address if the value has changed.
-     */
-     appl_sIpSettings.sAddress.uValue.abValue[ 3 ] = bSwitchValue;
-     appl_bNwNodeAddress = bSwitchValue;
-     appl_fSetAddrInProgress = TRUE;
-     ABCC_AddCmdSeq( appl_asAddressChangedCmdSeq, UpdateAddressDone );
-   }
-}
-
-void APPL_SetBaudrate( UINT8 bSwitchValue )
-{
-   if( appl_fSetBaudRateInProgress )
-   {
-      /*
-      ** Baud rate updated next time
-      */
-      return;
-   }
-
-   if( appl_fUserInitDone == FALSE )
-   {
-      appl_bNwBaudRate = bSwitchValue;
-   }
-   else if( appl_bNwBaudRate != bSwitchValue)
-   {
-      /*
-      ** Start command sequence to update baud rate if the value has changed.
-      */
-      appl_bNwBaudRate = bSwitchValue;
-      ABCC_AddCmdSeq( appl_asBaudRateChangedCmdSeq, UpdateBaudRateDone );
-   }
-   appl_fSetBaudRate = TRUE;
 }
 
 void APPL_UnexpectedError( void )
