@@ -3,87 +3,97 @@
 #include <cstdint>
 #include "tivaware/utils/uartstdio.h"
 
+namespace device {
+template<>
+DeadlineTimer<TIMER0_BASE>* DeadlineTimer<TIMER0_BASE>::_instance = nullptr;
+} // namespace device
+
 namespace app {
 namespace blinker {
 
-Blinker::Blinker(EventLoop& eventLoop, LEDPinGPIO& ledPinGPIO)
-	:	_ledPin(ledPinGPIO),
-		_deadlineTimer(eventLoop, _deadlineTimerDevice),
-		_led(_ledPin)
+Blinker::Blinker(EventLoop& eventLoop)
+	:	_timerDevice(),
+		_deadlineTimer(eventLoop, _timerDevice),
+		_ledPin(),
+		_led(_ledPin),
+		_eventLoop(eventLoop)
 {
-	_ledPin.setAsDigitalOutput();
-
 	UARTprintf("[Blinker] ready\n");
 
+	assert(!_deadlineTimer.isWaiting());
 	assert(_led.isTurnedOff());
-	assert(_moduleState == ModuleState::Ready);
+	assert(_state == State::Idle);
+}
+
+Blinker::~Blinker()
+{
+	assert(_state == State::Idle);
+	assert(_led.isTurnedOff());
+	assert(!_deadlineTimer.isWaiting());
 }
 
 void
 Blinker::start()
 {
-	if(_moduleState == ModuleState::Active)
-	{
-		return; // nothing to do
-	}
-
+	assert(_state == State::Idle);
 	UARTprintf("[Blinker] starting...\n");
 
-	_moduleState = ModuleState::Active;
-	_running = true;
-	execWait();
+	_state = State::Active;
+	doWait();
 
 	UARTprintf("[Blinker] started\n");
-	assert(_running);
-	assert(_moduleState == ModuleState::Active);
 }
 
 void
 Blinker::stop()
 {
-	if(_moduleState != ModuleState::Active)
-	{
-		return; // nothing to do
-	}
-
+	assert(_state == State::Active);
 	UARTprintf("[Blinker] stopping...\n");
 
-	_running = false; // signal stop request
-
-	assert(!_running);
+	_deadlineTimer.cancel();
+	_state = State::Stopping; // signal stop request
 }
 
 void
-Blinker::execWait()
+Blinker::doWait()
 {
-	assert(_moduleState == ModuleState::Active);
-
-	_deadlineTimer.asyncWait(std::chrono::milliseconds(1000),
-		[this]()
+	assert(_state == State::Active);
+	_deadlineTimer.asyncWait(WaitDuration,
+		[this](ErrorCode errorCode)
 		{
-			// assert(!errorStatus); // no errors will occur
-			// static_cast<void>(errorStatus);
+			static_cast<void>(errorCode);
 
-			if(_running)
+			if(_state == State::Stopping)
 			{
-				// keep blinking
-				toggleLED();
-				execWait();
-			}
-			else
-			{
-				// stop request signalled
+				// ErrorCode=Success may occur, when wait was not cancelled
+				//  (cancel occur after posting to EventLoop).
+				// ErrorCode=Aborted may occur, when wait was cancelled.
+				assert(errorCode == ErrorCode::Success
+					|| errorCode == ErrorCode::Aborted);
+
+				// We are going to stop now.
+				// Turn off LED, stop blinking and go to IDLE state.
 				_led.turnOff();
-
-				_moduleState = ModuleState::Ready;
+				_state = State::Idle;
 				UARTprintf("[Blinker] stopped\n");
+
+				return;
 			}
+
+			// Module is active => keep blinking
+			assert(_state == State::Active);
+			assert(errorCode == ErrorCode::Success);
+
+			toggleLED();
+			doWait();
 		});
 }
 
 void
 Blinker::toggleLED()
 {
+	assert(_state == State::Active);
+
 	if(_led.isTurnedOn())
 	{
 		_led.turnOff();
@@ -93,6 +103,33 @@ Blinker::toggleLED()
 		_led.turnOn();
 	}
 }
+
+//! Checks, if module is in active state
+// bool
+// Blinker::isActive() const
+// {
+// 	return _moduleState == ModuleState::Active;
+// }
+
+// //! Checks, if module is in failed state
+// bool
+// Blinker::isFailed() const
+// {
+// 	return _moduleState == ModuleState::Error;
+// }
+
+// //! Checks, if module is in ready state
+// bool
+// Blinker::isReady() const
+// {
+// 	return _moduleState == ModuleState::Ready;
+// }
+
+// ModuleState
+// Blinker::getState() const
+// {
+// 	return _moduleState;
+// }
 
 } // namespace blinker
 } // namespace app

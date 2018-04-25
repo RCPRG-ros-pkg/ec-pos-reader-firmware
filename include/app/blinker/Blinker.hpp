@@ -1,14 +1,13 @@
 #pragma once
 
-#include "device/GPIO.hpp"
-#include "device/GPTM.hpp"
+#include "device/OutputPin.hpp"
+#include "device/DeadlineTimer.hpp"
 
 #include "driver/DeadlineTimer.hpp"
 
 #include "component/LED.hpp"
 
 #include "app/common/EventLoop.hpp"
-#include "app/ModuleState.hpp"
 
 namespace app {
 namespace blinker {
@@ -17,10 +16,14 @@ class Blinker
 {
 public:
 	using EventLoop = common::EventLoop;
-	using LEDPinGPIO = device::GPIOF;
+
+	using LEDPin = device::OutputPin<GPIO_PORTF_BASE, 2>;
 
 	//! Constructor
-	Blinker(EventLoop& eventLoop, LEDPinGPIO& ledPinGPIO);
+	Blinker(EventLoop& eventLoop);
+
+	//! Destructor
+	~Blinker();
 
 	//! Starts module
 	void start();
@@ -29,57 +32,52 @@ public:
 	void stop();
 
 	//! Checks, if module is in active state
-	bool isActive() const
-	{
-		return _moduleState == ModuleState::Active;
-	}
+	bool isActive() const;
 
 	//! Checks, if module is in failed state
-	bool isFailed() const
-	{
-		return _moduleState == ModuleState::Error;
-	}
+	bool isFailed() const;
 
 	//! Checks, if module is in ready state
-	bool isReady() const
-	{
-		return _moduleState == ModuleState::Ready;
-	}
-
-	ModuleState getState() const
-	{
-		return _moduleState;
-	}
+	bool isReady() const;
 
 private:
-	// devices
-	using LEDPin = device::GPIOF::Pin<2>;
-	using DeadlineTimerDevice = device::GPTM0;
+	using ErrorCode = embxx::error::ErrorCode;
 
-	// drivers
-	using DeadlineTimer = driver::DeadlineTimer<DeadlineTimerDevice,
-		EventLoop, embxx::util::StaticFunction<void()>>;
+	template<typename T, std::size_t TSize>
+	using Function = embxx::util::StaticFunction<T, TSize>;
 
-	// components
+	using TimerDevice = device::DeadlineTimer<TIMER0_BASE>;
+	using TimerCallback = Function<void(ErrorCode), 1 * sizeof(void*)>;
+	using DeadlineTimer =
+		driver::DeadlineTimer<EventLoop, TimerDevice, TimerCallback>;
+
 	using LED = component::LED<LEDPin>;
 
-	void execWait();
+	//! Time duration between LED on/off switches
+	constexpr static auto WaitDuration = std::chrono::seconds(1);
 
+	//! Represents internal state of the module
+	enum class State
+	{
+		Idle, //< Module is not blinking
+		Active, //< Module is blinking
+		Stopping //< Module is going to stop blinking
+	};
+
+	//! Executes asynchronous wait and then toggles the LED
+	void doWait();
+
+	//! Toggles the LED
 	void toggleLED();
 
-	// devices
-	LEDPin _ledPin;
-	DeadlineTimerDevice _deadlineTimerDevice;
-
-	// drivers
+	TimerDevice _timerDevice;
 	DeadlineTimer _deadlineTimer;
 
-	// components
+	LEDPin _ledPin;
 	LED _led;
 
-	// others
-	ModuleState _moduleState = ModuleState::Ready;
-	bool _running = false;
+	EventLoop& _eventLoop;
+	State _state = State::Idle;
 };
 
 } // namespace blinker
