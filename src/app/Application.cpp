@@ -10,9 +10,9 @@ namespace app {
  * @details
  */
 Application::Application()
-	:	_blinker(_eventLoop),
-		_encoders(),
-		_etherCAT(_eventLoop, _encoders)
+	:	_blinker(_eventLoop)
+		,_encoderMgr()
+		,_etherCAT(_eventLoop, _encoderMgr)
 {
 	UARTprintf("[Application] initialized\n");
 }

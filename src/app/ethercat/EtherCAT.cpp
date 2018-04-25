@@ -63,9 +63,9 @@ namespace ethercat {
 EtherCAT* EtherCAT::_instance = nullptr;
 
 EtherCAT::EtherCAT(common::EventLoop& eventLoop,
-	encoders::Encoders& encoderss)
+	encoders::EncoderMgr& encoderMgr)
 	:	_eventLoop(eventLoop),
-		_encoders(encoderss)
+		_encoderMgr(encoderMgr)
 {
 	setupABCCHardware();
 
@@ -145,11 +145,11 @@ EtherCAT::captureInputs()
 {
 	// copy the sensors to the sync input.
 
-	if(_encoders.isActive())
+	if(_encoderMgr.isActive())
 	{
 		Position position;
 		ErrorCode ec;
-		_encoders.captureInputs(position, ec);
+		_encoderMgr.captureInputs(position, ec);
 		if(embxx::error::ErrorStatus(ec))
 		{
 			// error occured during read operation

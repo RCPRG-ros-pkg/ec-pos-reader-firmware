@@ -6,7 +6,7 @@
 #include "embxx/error/ErrorCode.h"
 
 #include "app/ethercat/Status.hpp"
-#include "app/encoders/Encoders.hpp"
+#include "app/encoders/EncoderMgr.hpp"
 
 #include "app/ethercat/abcc_appl/appl_abcc_handler.h"
 
@@ -22,7 +22,7 @@ public:
 	using ErrorCode = embxx::error::ErrorCode;
 
 	EtherCAT(common::EventLoop& eventLoop,
-		encoders::Encoders& encoders);
+		encoders::EncoderMgr& encoderMgr);
 
 	~EtherCAT();
 
@@ -31,7 +31,7 @@ public:
 private:
 	friend void ::APPL_SyncIsr();
 
-	using Position = encoders::Encoders::Position;
+	using Position = encoders::EncoderMgr::Position;
 
 	void setupABCCHardware();
 
@@ -42,7 +42,7 @@ private:
 	APPL_AbccHandlerStatusType _abccHandlerStatus;
 
 	common::EventLoop& _eventLoop;
-	encoders::Encoders& _encoders;
+	encoders::EncoderMgr& _encoderMgr;
 
 	static EtherCAT* _instance;
 };
