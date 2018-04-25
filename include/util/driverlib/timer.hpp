@@ -11,6 +11,7 @@
 
 bool TimerIsEnabled(std::uint32_t baseAddress, std::uint32_t timer);
 std::uint32_t TimerMaskedIntStatus(std::uint32_t baseAddress);
+std::uint32_t TimerRawIntStatus(std::uint32_t baseAddress);
 
 inline bool
 TimerIsEnabled(std::uint32_t baseAddress, std::uint32_t timer)
@@ -26,4 +27,10 @@ inline std::uint32_t
 TimerMaskedIntStatus(std::uint32_t baseAddress)
 {
 	return HWREG(baseAddress + TIMER_O_MIS);
+}
+
+inline std::uint32_t
+TimerRawIntStatus(std::uint32_t baseAddress)
+{
+	return HWREG(baseAddress + TIMER_O_RIS);
 }
