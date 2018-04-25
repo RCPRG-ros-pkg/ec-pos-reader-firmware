@@ -14,8 +14,6 @@ namespace app {
 class Application
 {
 public:
-	// static Application& instance();
-
 	//! Constructor
 	Application();
 
@@ -30,8 +28,6 @@ private:
 	using ErrorStatus = embxx::error::ErrorStatus;
 	using ErrorCode = ErrorStatus::ErrorCodeType;
 
-
-
 	//! Starts modules
 	void startModules();
 
@@ -40,8 +36,8 @@ private:
 
 	// modules
 	blinker::Blinker _blinker;
-	// encoders::Encoders _encoders;
-	// ethercat::EtherCAT _etherCAT;
+	encoders::Encoders _encoders;
+	ethercat::EtherCAT _etherCAT;
 };
 
 } // namespace app
