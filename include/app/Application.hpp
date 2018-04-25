@@ -2,10 +2,6 @@
 
 #include "app/common/EventLoop.hpp"
 
-#include "device/GPIO.hpp"
-
-#include "component/LED.hpp"
-
 #include "app/blinker/Blinker.hpp"
 #include "app/encoders/Encoders.hpp"
 #include "app/ethercat/EtherCAT.hpp"
@@ -18,11 +14,13 @@ namespace app {
 class Application
 {
 public:
-	static Application& instance()
-	{
-		static Application instance;
-		return instance;
-	}
+	// static Application& instance();
+
+	//! Constructor
+	Application();
+
+	//! Destructor
+	~Application();
 
 	//! Starts main loop of application
 	void run();
@@ -32,11 +30,7 @@ private:
 	using ErrorStatus = embxx::error::ErrorStatus;
 	using ErrorCode = ErrorStatus::ErrorCodeType;
 
-	//! Constructor
-	Application();
 
-	//! Destructor
-	~Application();
 
 	//! Starts modules
 	void startModules();
@@ -44,14 +38,10 @@ private:
 	// commons
 	common::EventLoop _eventLoop;
 
-	// devices
-	device::GPIOF _gpiofDevice;
-	device::GPIOB _gpiobDevice;
-
 	// modules
 	blinker::Blinker _blinker;
-	encoders::Encoders _encoders;
-	ethercat::EtherCAT _etherCAT;
+	// encoders::Encoders _encoders;
+	// ethercat::EtherCAT _etherCAT;
 };
 
 } // namespace app

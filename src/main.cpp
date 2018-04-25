@@ -8,6 +8,7 @@
 
 int main()
 {
-	auto& application = app::Application::instance();
+	// auto& application = app::Application::instance();
+	app::Application application;
 	application.run();
 }
