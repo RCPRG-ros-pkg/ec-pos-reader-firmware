@@ -131,7 +131,7 @@ void ABCC_SpiISR()
       return;
    }
 
-   ABCC_CbfEvent( 0 );
+   ABCC_CbfEvent( 0xff );
 }
 #else
 void ABCC_SpiISR()

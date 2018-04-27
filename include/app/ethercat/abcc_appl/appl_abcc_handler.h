@@ -66,6 +66,18 @@
 ********************************************************************************
 */
 
+typedef enum appl_AbccHandlerState
+{
+   APPL_INIT,
+   APPL_WAITCOM,
+   APPL_RUN,
+   APPL_SHUTDOWN,
+   APPL_ABCCRESET,
+   APPL_DEVRESET,
+   APPL_HALT
+}
+appl_AbccHandlerStateType;
+
 /*------------------------------------------------------------------------------
 ** Status reported by the ABCC handler controlling the ABCC module
 **------------------------------------------------------------------------------

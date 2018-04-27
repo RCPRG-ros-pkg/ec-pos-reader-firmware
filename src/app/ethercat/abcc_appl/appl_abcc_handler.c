@@ -131,17 +131,7 @@ appl_IpSettingsType;
 ** ABCC Handler states
 **------------------------------------------------------------------------------
 */
-typedef enum appl_AbccHandlerState
-{
-   APPL_INIT,
-   APPL_WAITCOM,
-   APPL_RUN,
-   APPL_SHUTDOWN,
-   APPL_ABCCRESET,
-   APPL_DEVRESET,
-   APPL_HALT
-}
-appl_AbccHandlerStateType;
+
 
 /*******************************************************************************
 ** Public Globals
@@ -157,7 +147,7 @@ appl_AbccHandlerStateType;
 ** Current state of the ABCC
 **------------------------------------------------------------------------------
 */
-static appl_AbccHandlerStateType appl_eAbccHandlerState = APPL_INIT;
+appl_AbccHandlerStateType appl_eAbccHandlerState = APPL_INIT;
 
 /*------------------------------------------------------------------------------
 ** Current anybus state
@@ -224,10 +214,10 @@ static BOOL appl_fUserInitDone = FALSE;
 ** be set to TRUE in ABCC_CbfEvent().
 **------------------------------------------------------------------------------
 */
-static volatile BOOL appl_fMsgReceivedEvent = FALSE;
-static volatile BOOL appl_fRdPdReceivedEvent = FALSE;
-static volatile BOOL appl_fTransmitMsgEvent = FALSE;
-static volatile BOOL appl_fAbccStatusEvent = FALSE;
+volatile BOOL appl_fMsgReceivedEvent = FALSE;
+volatile BOOL appl_fRdPdReceivedEvent = FALSE;
+volatile BOOL appl_fTransmitMsgEvent = FALSE;
+volatile BOOL appl_fAbccStatusEvent = FALSE;
 
 /*------------------------------------------------------------------------------
 ** Forward declarations
@@ -884,45 +874,6 @@ void ABCC_CbfWdTimeout( void )
 void ABCC_CbfWdTimeoutRecovered( void )
 {
    ABCC_PORT_DebugPrint( ( "ABCC watchdog recovered" ) );
-}
-
-#if ABCC_CFG_SYNC_ENABLE
-void ABCC_CbfSyncIsr( void )
-{
-   /*
-   ** Call application specific handling of sync event
-   */
-   APPL_SyncIsr();
-}
-#endif
-
-void ABCC_CbfEvent( UINT16 iEvents )
-{
-
-   /*
-   ** Set flag to indicate that an event has occurred and the corresponding
-   ** ABCC_Trigger<event_action> must be called. In the sample code the the
-   ** trigger function is called from main loop context.
-   */
-   if( iEvents & ABCC_ISR_EVENT_RDPD )
-   {
-      appl_fRdPdReceivedEvent = TRUE;
-   }
-
-   if( iEvents & ABCC_ISR_EVENT_RDMSG )
-   {
-      appl_fMsgReceivedEvent = TRUE;
-   }
-
-   if( iEvents & ABCC_ISR_EVENT_WRMSG )
-   {
-      appl_fTransmitMsgEvent = TRUE;
-   }
-
-   if( iEvents & ABCC_ISR_EVENT_STATUS  )
-   {
-      appl_fAbccStatusEvent = TRUE;
-   }
 }
 
 void ABCC_CbfAnbStateChanged( ABP_AnbStateType eNewAnbState )

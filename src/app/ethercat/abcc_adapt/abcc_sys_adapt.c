@@ -70,7 +70,7 @@ void portE_ISR()
    else
    {
       assert(maskedStatus & IRQ_PIN);
-      // UARTprintf("IRQ interrupt\n");
+      UARTprintf("IRQ interrupt\n");
       ABCC_ISR();
    }
 }
@@ -236,12 +236,14 @@ void ABCC_SYS_SyncInterruptDisable()
 //! Enables interrupt from IRQ pin
 void ABCC_SYS_AbccInterruptEnable()
 {
+   UARTprintf("Enabling IRQ pin\n");
    GPIOIntEnable(GPIO_PORTE_BASE, IRQ_PIN);
 }
 
 //! Disables interrupt from IRQ pin
 void ABCC_SYS_AbccInterruptDisable()
 {
+   UARTprintf("Disabling IRQ pin\n");
    GPIOIntDisable(GPIO_PORTE_BASE, IRQ_PIN);
 }
 
