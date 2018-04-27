@@ -3,7 +3,6 @@
 # Author: akowalew
 
 # configuration: sources, flags, standard
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Os")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
 -std=c++17 \
 -Wall \
