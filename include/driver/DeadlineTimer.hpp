@@ -3,7 +3,6 @@
 #include <chrono>
 #include <utility>
 #include <type_traits>
-#include <exception>
 
 #include "embxx/device/context.h"
 #include "embxx/error/ErrorCode.h"
