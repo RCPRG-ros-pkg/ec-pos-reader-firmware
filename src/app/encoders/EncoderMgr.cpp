@@ -8,8 +8,8 @@
 namespace app {
 namespace encoders {
 
-EncoderMgr::EncoderMgr()
-	:	_encoders()
+EncoderMgr::EncoderMgr(EventLoop& _eventLoop)
+	:	_encoders(_eventLoop)
 {
 }
 
