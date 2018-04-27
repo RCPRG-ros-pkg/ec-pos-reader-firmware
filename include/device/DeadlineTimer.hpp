@@ -6,13 +6,13 @@
 
 #include "tivaware/inc/hw_ints.h"
 
+#include "embxx/util/StaticFunction.h"
+#include "embxx/device/context.h"
+
 #include "util/driverlib/timer.hpp"
 #include "util/driverlib/interrupt.hpp"
 
 #include "init.hpp"
-
-#include "embxx/util/StaticFunction.h"
-#include "embxx/device/context.h"
 
 namespace device {
 
@@ -59,7 +59,7 @@ public:
 		TimerIntDisable(BaseAddress, TIMER_TIMA_TIMEOUT);
 
 		// During destruction, timer should be idle
-		assert(!checkWaiting(EventLoopCtx()));
+		assert(!checkWaiting(InterruptCtx()));
 
 		// Disable interrupt handler and unregister it
 		IntDisable(IntNumber);
@@ -174,8 +174,7 @@ private:
 	{
 		if(TimerIsEnabled(BaseAddress, TIMER_A))
 		{
-			// Right after disabling interrupts, timer was enabled,
-			//  so callback was not called yet => timer is waiting
+			// Right after disabling interrupts, timer was enabled
 			return true;
 		}
 		else if(const auto rawIntStatus = TimerRawIntStatus(BaseAddress); rawIntStatus)
@@ -198,12 +197,12 @@ private:
 		assert(TimerMaskedIntStatus(BaseAddress) == TIMER_TIMA_TIMEOUT);
 		TimerIntClear(BaseAddress, TIMER_TIMA_TIMEOUT);
 
+		// Since this timer was in one-shot mode, it should be now disabled
+		assert(!TimerIsEnabled(BaseAddress, TIMER_A));
+
 		// Wait complete, invoke the callback
 		assert(_timeoutCallback);
 		_timeoutCallback();
-
-		// Since this timer was in one-shot mode, it should be now disabled
-		assert(!TimerIsEnabled(BaseAddress, TIMER_A));
 	}
 
 	static void timerISR()
