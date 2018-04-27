@@ -25,7 +25,7 @@ set(CMAKE_C_FLAGS "\
 -mfloat-abi=hard \
 -munaligned-access \
 -DPART_${MCU} \
--DTARGET_IS_TM4C123_RA3"
+-DTARGET_IS_TM4C123_RB1"
 CACHE STRING "" FORCE)
 
 set(CMAKE_CXX_FLAGS "\
@@ -37,7 +37,7 @@ set(CMAKE_CXX_FLAGS "\
 -mfloat-abi=hard \
 -munaligned-access \
 -DPART_${MCU} \
--DTARGET_IS_TM4C123_RA3"
+-DTARGET_IS_TM4C123_RB1"
 CACHE STRING "" FORCE)
 
 # search for programs in the build host directories
