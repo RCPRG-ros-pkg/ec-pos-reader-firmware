@@ -7,6 +7,7 @@
 #include "app/ethercat/EtherCAT.hpp"
 
 #include "embxx/error/ErrorStatus.h"
+#include "embxx/error/ErrorCode.h"
 
 namespace app {
 
@@ -26,10 +27,10 @@ public:
 private:
 	// common stuff
 	using ErrorStatus = embxx::error::ErrorStatus;
-	using ErrorCode = ErrorStatus::ErrorCodeType;
+	using ErrorCode = embxx::error::ErrorCode;
 
 	//! Starts modules
-	void startModules();
+	void start();
 
 	// commons
 	common::EventLoop _eventLoop;

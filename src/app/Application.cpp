@@ -11,10 +11,12 @@ namespace app {
  */
 Application::Application()
 	:	_blinker(_eventLoop)
-		,_encoderMgr()
+		,_encoderMgr(_eventLoop)
 		,_etherCAT(_eventLoop, _encoderMgr)
 {
 	UARTprintf("[Application] initialized\n");
+
+	IntMasterDisable();
 }
 
 /**
@@ -33,7 +35,7 @@ Application::~Application()
 void
 Application::run()
 {
-	startModules();
+	start();
 
 	IntMasterEnable();
 	_eventLoop.run();
@@ -41,16 +43,15 @@ Application::run()
 }
 
 void
-Application::startModules()
+Application::start()
 {
-	UARTprintf("[Application] starting modules...\n");
+	UARTprintf("[Application] starting...\n");
 
 	// start modules
 	_blinker.start();
 	_etherCAT.start();
 
-	UARTprintf("[Application] modules started\n");
-
+	UARTprintf("[Application] started\n");
 }
 
 } // namespace app
