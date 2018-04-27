@@ -23,10 +23,13 @@
 
 #define SSI_FIFO_SIZE 8
 
+#define SSI_INT_FLAGS_ALL (SSI_TXFF | SSI_RXFF | SSI_RXTO | SSI_RXOR)
+
 typedef uint32_t SSIDataType;
 
 uint32_t SSIDataGetNow(uint32_t baseAddress);
-bool SSIEnabled(uint32_t baseAddress);
+bool SSIIsEnabled(uint32_t baseAddress);
+uint32_t SSIIntEnabledGet(uint32_t baseAddress);
 void SSIEOTEnable(uint32_t baseAddress);
 void SSIEOTDisable(uint32_t baseAddress);
 uint32_t SSIBitRateGet(uint32_t baseAddress, uint32_t clockRate);
@@ -68,9 +71,21 @@ SSIDataGetNow(uint32_t baseAddress)
  * @param baseAddress base address of SSI module
  */
 inline bool
-SSIEnabled(uint32_t baseAddress)
+SSIIsEnabled(uint32_t baseAddress)
 {
 	return (HWREG(baseAddress + SSI_O_CR1) & SSI_CR1_SSE);
+}
+
+/**
+ * @brief Returns enabled SSI interrupts
+ * @details [long description]
+ *
+ * @param baseAddress [description]
+ */
+inline uint32_t
+SSIIntEnabledGet(uint32_t baseAddress)
+{
+    return HWREG(ui32Base + SSI_O_IM);
 }
 
 /**
@@ -115,7 +130,7 @@ SSIBitRateSet(uint32_t baseAddress, uint32_t clockRate, uint32_t bitRate)
 	static_cast<void>(baseAddress);
 	static_cast<void>(clockRate);
 	static_cast<void>(bitRate);
-	assert(!"Not implemented");
+	assert(!"SSIBitRateSet: not implemented");
 }
 
 /**
