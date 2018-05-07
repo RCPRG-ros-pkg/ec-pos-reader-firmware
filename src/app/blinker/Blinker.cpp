@@ -15,7 +15,7 @@ Blinker::Blinker(EventLoop& eventLoop)
 {
 	UARTprintf("[Blinker] ready\n");
 
-	assert(!_deadlineTimer.isWaiting());
+	assert(!_deadlineTimer.isBusy());
 	assert(_led.isTurnedOff());
 	assert(_state == State::Idle);
 }
@@ -24,7 +24,7 @@ Blinker::~Blinker()
 {
 	assert(_state == State::Idle);
 	assert(_led.isTurnedOff());
-	assert(!_deadlineTimer.isWaiting());
+	assert(!_deadlineTimer.isBusy());
 }
 
 void
