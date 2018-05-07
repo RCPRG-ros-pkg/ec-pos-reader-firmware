@@ -56,6 +56,7 @@ public:
 	 * @param dataWidth [description]
 	 */
 	SSIMaster(int bitRate, std::size_t dataWidth)
+		:	Peripheral<TId>::Peripheral()
 	{
 		// Interrupts should be locked
 		assert(IntGeneralEnabledGet(IntNumber) == false);
@@ -159,8 +160,8 @@ public:
 		// Device should not be busy
 		assert(!isBusy(InterruptCtx()));
 
-		// Pointer to destData should be null, so store the new one
-		assert(_destData != nullptr);
+		// Pointer to destData should be non-null, so store it
+		assert(destData != nullptr);
 		_destData = destData;
 
 		// Both queues should be empty, so insert one dummy data item to Tx FIFO
@@ -225,13 +226,13 @@ public:
 	isBusy(EventLoopCtx)
 	{
 		// Lock interrupts
-		IntGeneralDisable(BaseAddress);
+		IntGeneralDisable(IntNumber);
 
 		// Check if busy, as in the interrupt context
 		const auto busy = isBusy(InterruptCtx());
 
 		// Unlock interrupts
-		IntGeneralEnable(BaseAddress);
+		IntGeneralEnable(IntNumber);
 
 		return busy;
 	}
@@ -372,12 +373,11 @@ private:
 			// Rx buffer should be non-null, so store received data to it
 			assert(_destData != nullptr);
 			*_destData = destData;
-			_destData = nullptr;
 		}
 		else
 		{
 			// Received data contains errors
-			// Since error code is set, there is no more things to do
+			// Since error code is set, there are no more things to do
 		}
 
 		// Read handler should be non-null, so invoke it with given error code
@@ -393,7 +393,7 @@ private:
 	{
 		// Retrieve stored UserData pointer (pointing to this object),
 		//  and cast it to this object type
-		using ThisType = SSIMaster<BaseAddress, IntNumber>;
+		using ThisType = SSIMaster<BaseAddress, TId, IntNumber>;
 		auto userData = IntUserDataGet(IntNumber);
 		auto instance = static_cast<ThisType*>(userData);
 
