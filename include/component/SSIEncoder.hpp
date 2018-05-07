@@ -14,7 +14,7 @@ using Position = int;
 template<typename TEventLoop, typename TSSIMasterDevice, typename TReadHandler>
 class SSIEncoder
 {
-	using SSIMasterDeviceFrameType = typename TSSIMasterDevice::FrameType;
+	using SSIMasterDeviceDataType = typename TSSIMasterDevice::DataType;
 	using EventLoopCtx = embxx::device::context::EventLoop;
 	using InterruptCtx = embxx::device::context::Interrupt;
 
@@ -22,12 +22,12 @@ public:
 	using EventLoop = TEventLoop;
 
 	using SSIMasterDevice = TSSIMasterDevice;
-	using FrameType = typename SSIMasterDevice::FrameType;
+	using DataType = typename SSIMasterDevice::DataType;
 
 	using ReadHandler = TReadHandler;
 
-	constexpr static auto MinResolution = SSIMasterDevice::MinFrameWidth;
-	constexpr static auto MaxResolution = SSIMasterDevice::MaxFrameWidth;
+	constexpr static auto MinResolution = SSIMasterDevice::MinDataWidth;
+	constexpr static auto MaxResolution = SSIMasterDevice::MaxDataWidth;
 
 	using ErrorCode = typename SSIMasterDevice::ErrorCode;
 
@@ -42,46 +42,49 @@ public:
 		assert(resolution >= MinResolution
 			&& resolution <= MaxResolution);
 
-		_ssiMasterDevice.setCallback(
+		_ssiMasterDevice.setReadHandler(
 			[this](ErrorCode errorCode)
 			{
 				readComplete(errorCode);
 			});
 
-		// Change SSIMaster frame width only if needed
-		const auto frameWidth = resolution;
-		if(frameWidth != ssiMasterDevice.getFrameWidth())
+		// Change SSIMaster data width only if needed
+		const auto dataWidth = resolution;
+		if(dataWidth != ssiMasterDevice.getDataWidth())
 		{
-			ssiMasterDevice.setFrameWidth(resolution);
+			ssiMasterDevice.setDataWidth(resolution);
 		}
+
+		// Postcondition, driver should not be busy
+		assert(!isBusy());
 	}
 
+	//! Reads encoder position value asynchronously
 	template<typename TFunc>
-	void asyncReadPosition(Position* position, TFunc&& func)
+	void asyncReadPosition(Position* destPosition, TFunc&& func)
 	{
-		// Driver should be not busy
+		// Driver should not be busy
 		assert(!isBusy());
 
-		// Target position pointer should be non-null, so store it
-		assert(position != nullptr);
-		assert(_position == nullptr);
-		_position = position;
+		// Check correctness of input arguments
+		assert(destPosition != nullptr);
+		_destPosition = destPosition;
 
 		// Store provided handler
 		_readHandler = std::forward<TFunc>(func);
 
 		// Begin asynchronous read
-		_ssiMasterDevice.startReadOne(&_frame, EventLoopCtx());
+		_ssiMasterDevice.startReadOne(&_data, EventLoopCtx());
 	}
 
 	//! Reads encoder position value. Blocking call.
-	void readPosition(Position& position, ErrorCode& errorCode)
+	void readPosition(Position& destPosition, ErrorCode& errorCode)
 	{
-		// Driver should be not busy
+		// Driver should not be busy
 		assert(!isBusy());
 
-		// Read one frame from the device. Blocking call
-		_ssiMasterDevice.readOne(_frame, errorCode);
+		// Read one data item from the device. Blocking call
+		_ssiMasterDevice.readOne(_data, errorCode);
 		if(embxx::error::ErrorStatus(errorCode))
 		{
 			// Error occured during read operation
@@ -89,45 +92,45 @@ public:
 		}
 
 		// Read success. Process received value and store result
-		position = processFrame(_frame);
+		destPosition = processData(_data);
 	}
 
 	//! Gets the resolution of encoder
 	std::size_t getResolution() const
 	{
-		const auto frameWidth = _ssiMasterDevice.getFrameWidth();
+		const auto dataWidth = _ssiMasterDevice.getDataWidth();
 
-		const auto resolution = frameWidth;
+		const auto resolution = dataWidth;
 		assert(resolution >= MinResolution
 			&& resolution <= MaxResolution);
 
 		return resolution;
 	}
 
+	//! Checks, if driver is busy or not
 	bool isBusy()
 	{
-		return _ssiMasterDevice.isBusy();
+		return _ssiMasterDevice.isBusy(EventLoopCtx());
 	}
 
+	//! Returns reference to used EventLoop object
 	EventLoop& getEventLoop()
 	{
 		return _eventLoop;
 	}
 
 private:
+	//! Handler, which will be called by the device after async read
 	void readComplete(ErrorCode errorCode)
 	{
 		if(!embxx::error::ErrorStatus(errorCode))
 		{
-			// Read completed without errors. Process received frame
-			const auto position = processFrame(_frame);
+			// Read completed without errors. Process received data
+			const auto position = processData(_data);
 
-			// Target position pointer should be non-null, so write to it
-			assert(_position != nullptr);
-			*_position = position;
+			// Store received position.
+			*_destPosition = position;
 		}
-
-		_position = nullptr;
 
 		// Post callback with appriopriate errorCode
 		const auto postSuccess = _eventLoop.postInterruptCtx(
@@ -141,15 +144,15 @@ private:
 		static_cast<void>(postSuccess);
 	}
 
-	Position processFrame(const FrameType& frame)
+	Position processData(const DataType& data)
 	{
 		// Only Gray-To-Binary implemented at the moment
-		return etl::gray_to_binary(frame);
+		return etl::gray_to_binary(data);
 	}
 
-	ReadHandler _readHandler;
-	FrameType _frame;
-	Position* _position = nullptr; //< Not owning pointer used in async operations
+	ReadHandler _readHandler; //< Handler to be invoked after asyncReadPosition
+	DataType _data; //< Buffer used in read operations
+	Position* _destPosition = nullptr; //< Not owning pointer used in async operations
 	EventLoop& _eventLoop;
 	SSIMasterDevice& _ssiMasterDevice; //< Device handler
 };
