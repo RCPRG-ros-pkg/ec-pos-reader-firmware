@@ -88,6 +88,6 @@ add_custom_target(objdump-full
 
 # add 'debug' target - write program and start debug session
 add_custom_target(debug
-    COMMAND /usr/bin/arm-none-eabi-gdb ${PROJECT_NAME}
+    COMMAND /opt/embedded/gcc-arm-none-eabi-7-2017-q4-major/bin/arm-none-eabi-gdb ${PROJECT_NAME}
         -x ${CMAKE_SOURCE_DIR}/.gdbinit
     DEPENDS flash)
