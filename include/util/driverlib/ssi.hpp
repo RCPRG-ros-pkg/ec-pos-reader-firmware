@@ -85,7 +85,7 @@ SSIIsEnabled(uint32_t baseAddress)
 inline uint32_t
 SSIIntEnabledGet(uint32_t baseAddress)
 {
-    return HWREG(ui32Base + SSI_O_IM);
+    return HWREG(baseAddress + SSI_O_IM);
 }
 
 /**

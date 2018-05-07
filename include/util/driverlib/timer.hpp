@@ -9,9 +9,16 @@
 #include "tivaware/driverlib/rom.h"
 #include "tivaware/driverlib/rom_map.h"
 
+std::uint32_t TimerIntEnabledGet(std::uint32_t baseAddress);
 bool TimerIsEnabled(std::uint32_t baseAddress, std::uint32_t timer);
 std::uint32_t TimerMaskedIntStatus(std::uint32_t baseAddress);
 std::uint32_t TimerRawIntStatus(std::uint32_t baseAddress);
+
+inline std::uint32_t
+TimerIntEnabledGet(std::uint32_t baseAddress)
+{
+	return HWREG(baseAddress + TIMER_O_IMR);
+}
 
 inline bool
 TimerIsEnabled(std::uint32_t baseAddress, std::uint32_t timer)
