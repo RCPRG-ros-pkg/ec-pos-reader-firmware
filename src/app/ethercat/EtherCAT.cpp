@@ -14,6 +14,8 @@ extern "C" {
 #include "abcc.h"
 #include "appl_adi_config.h"
 #include "appl_abcc_handler.h"
+#include "app/ethercat/abcc_obj/ad_obj.h"
+#include "app/ethercat/abcc_obj/sync_obj.h"
 
 } // extern "C"
 
@@ -59,9 +61,6 @@ const AD_DefaultMapType APPL_asAdObjDefaultMap[] =
 	{ AD_DEFAULT_MAP_END_ENTRY }
 };
 
-extern appl_AbccHandlerStateType appl_eAbccHandlerState;
-
-
 namespace app {
 namespace ethercat {
 
@@ -73,121 +72,163 @@ EtherCAT::EtherCAT(common::EventLoop& eventLoop,
 		_encoderMgr(encoderMgr)
 {
 	setupABCCHardware();
-
 	_instance = this;
 
 	UARTprintf("[EtherCAT] ready\n");
-
-	SysTickPeriodSet(12777216);
-
 	assert(_instance != nullptr);
+	assert(_state == State::Idle);
 }
 
 EtherCAT::~EtherCAT()
 {
+	assert(_state == State::Idle);
+
 	_instance = nullptr;
 
 	UARTprintf("[EtherCAT] deinitialized");
-
 	assert(_instance == nullptr);
 }
 
 void
 EtherCAT::setupABCCHardware()
 {
+	assert(_state == State::Idle);
 	UARTprintf("[EtherCAT] Setting up ABCC hardware...\n");
 
 	const auto errorCode = ABCC_HwInit();
-	if(errorCode != ABCC_EC_NO_ERROR)
-	{
-		UARTprintf("[EtherCAT] ABCC hardware setup error: %d\n",
-			errorCode);
-		std::exit(EXIT_FAILURE);
-	}
+	assert(errorCode == ABCC_EC_NO_ERROR);
 
 	UARTprintf("[EtherCAT] ABCC hardware setup success\n");
 }
 
-int iterations = 0;
-
 void
 EtherCAT::start()
 {
+	assert(_state == State::Idle);
 	UARTprintf("[EtherCAT] starting...\n");
 
-	_eventLoop.busyWait(
-		[]()
-		{
-			// next iteration of ABCC handling loop
-			const auto abccHandlerStatus = APPL_HandleAbcc();
-			assert(abccHandlerStatus == APPL_MODULE_NO_ERROR);
-			static_cast<void>(abccHandlerStatus);
-
-			if(appl_eAbccHandlerState == APPL_RUN)
-			{
-				if(++iterations == 100000)
-				{
-					return true;
-				}
-
-				return false;
-			}
-
-			return false;
-		},
-		[]()
-		{
-			UARTprintf("RUN\n");
-			// assert(_abccHandlerStatus != APPL_MODULE_NO_ERROR);
-
-			// // ABCC handling loop ends, notify about an error
-			// UARTprintf("[EtherCAT] error occured, status: %d\n",
-			// 	static_cast<int>(_abccHandlerStatus));
-			// UARTprintf("[EtherCAT] stopped\n");
-		});
+	initialize();
 
 	UARTprintf("[EtherCAT] started\n");
 }
 
 void
-EtherCAT::handleEvent(std::uint16_t)
+EtherCAT::initialize()
 {
-	if(iterations == 100000)
+	assert(_state == State::Idle);
+	UARTprintf("[EtherCAT] initializing...\n");
+
+	_state = State::Init;
+
+	if(!ABCC_ModuleDetect())
 	{
+		UARTprintf("[EtherCAT] module not detected\n");
+		_state = State::Error;
+
 		return;
 	}
 
-	const auto postSuccess = _eventLoop.postInterruptCtx(
-		[]()
-		{
-			const auto abccHandlerStatus = APPL_HandleAbcc();
-			assert(abccHandlerStatus == APPL_MODULE_NO_ERROR);
-			static_cast<void>(abccHandlerStatus);
-		});
-	assert(postSuccess);
-	static_cast<void>(postSuccess);
+	if(AD_Init(APPL_asAdiEntryList, APPL_GetNumAdi(),
+		APPL_asAdObjDefaultMap) != APPL_NO_ERROR)
+	{
+		UARTprintf("[EtherCAT] could not initialize AD\n");
+		_state = State::Error;
+
+		return;
+	}
+
+	constexpr auto StartupTimeMs = 0;
+	if(ABCC_StartDriver(StartupTimeMs) != ABCC_EC_NO_ERROR)
+	{
+		UARTprintf("[EtherCAT] module not answering\n");
+		_state = State::Error;
+
+		return;
+	}
+
+    ABCC_HWReleaseReset();
+
+	UARTprintf("[EtherCAT] init success\n");
+	waitForCommunication();
 }
 
-/*------------------------------------------------------------------------------
-** If sync is used this function is called to indicate that write process data
-** ADI:s shall be updated with the captured input.
-**------------------------------------------------------------------------------
-** Arguments:
-**    None
-**
-** Returns:
-**    None
-**------------------------------------------------------------------------------
-*/
+void
+EtherCAT::waitForCommunication()
+{
+	assert(_state == State::Init);
 
-int cnt = 0;
-int sum = 0; int min = 12777216; int max = 0; int totmin = 12777216; int totmax = 0;
+	_state = State::WaitForComm;
+
+	// Execute busy wait, to cyclically check the communication status
+	_eventLoop.busyWait(
+		[this]()
+		{
+			assert(_state == State::WaitForComm);
+
+			const auto commState = ABCC_isReadyForCommunication();
+			if(commState == ABCC_READY_FOR_COMMUNICATION)
+			{
+				UARTprintf("[EtherCAT] module ready for communication\n");
+				run();
+
+				return true; // Ready for communication, so end busy wait
+			}
+			else if(commState == ABCC_COMMUNICATION_ERROR)
+			{
+				UARTprintf("[EtherCAT] module not answering\n");
+				_state = State::Error;
+
+				return true; // Error, so end busy wait
+			}
+
+			return false; // Not ready for communication, so don't end the wait
+		},
+		[]()
+		{
+			/* Busy wait ends, do nothing */
+		});
+
+	UARTprintf("[EtherCAT] waiting for communication...\n");
+}
+
+void
+EtherCAT::run()
+{
+	assert(_state == State::WaitForComm);
+
+	_state = State::Run;
+
+	_eventLoop.busyWait(
+		[this]()
+		{
+			if(_state != State::Run)
+			{
+				// Module is no longer active, end busy wait
+				return true;
+			}
+
+			// Module is active, keep communication with ABCC
+			if(SYNC_GetMode() == SYNC_MODE_NONSYNCHRONOUS)
+			{
+				ABCC_TriggerWrPdUpdate();
+			}
+
+			ABCC_RunDriver();
+
+			return false; // Don't end the busy wait
+
+		},
+		[]()
+		{
+			UARTprintf("[EtherCAT] stopped\n");
+		});
+
+	UARTprintf("[EtherCAT] running...\n");
+}
 
 void
 EtherCAT::captureInputs()
 {
-	// copy the sensors to the sync input.
-
 	if(_encoderMgr.isActive())
 	{
 		Position position;
@@ -212,119 +253,6 @@ EtherCAT::captureInputs()
 	*/
 	ABCC_TriggerWrPdUpdate();
 
-	// if(!_called)
-	// {
-	// 	UARTprintf("!\n");
-	// }
-	// _called = false;
-	SysTickClear();
-	SysTickEnable();
-	const auto postSuccess = _eventLoop.postInterruptCtx(
-		[/*this*/]()
-		{
-			// _called = true;
-			const auto abccHandlerStatus = APPL_HandleAbcc();
-			assert(abccHandlerStatus == APPL_MODULE_NO_ERROR);
-			static_cast<void>(abccHandlerStatus);
-
-			const int value = (12777216 - SysTickValueGet());
-			SysTickDisable();
-			sum += value;
-			if(value < min)
-				min = value;
-			if(value > max)
-				max = value;
-			if(value < totmin)
-				totmin = value;
-			if(value > totmax)
-				totmax = value;
-			if(++cnt == 100)
-			{
-				UARTprintf("%d %d %d %d %d\n",
-					sum / 100, min, max, totmin, totmax);
-				sum = 0;
-				max = 0;
-				min = 12777216;
-				cnt = 0;
-			}
-		});
-	assert(postSuccess);
-	static_cast<void>(postSuccess);
-}
-
-void
-EtherCAT::captureInputsAsync()
-{
-	if(!_called)
-	{
-		UARTprintf("!\n");
-	}
-
-	_called = false;
-	SysTickClear();
-	SysTickEnable();
-	const auto postSuccess = _eventLoop.postInterruptCtx(
-		[this]()
-		{
-			_called = true;
-			if(_encoderMgr.isActive())
-			{
-				_encoderMgr.asyncCaptureInputs(&_position,
-					[this](auto errorCode)
-					{
-						if(embxx::error::ErrorStatus(errorCode))
-						{
-							// error occured during read operation
-							UARTprintf("[EtherCAT] could not capture inputs, ec=%d\n",
-								static_cast<int>(errorCode));
-							APPL_UnexpectedError();
-							return;
-						}
-
-						// inputs capture success
-						_encoder0Position = _position;
-						ABCC_TriggerWrPdUpdate();
-
-						// const auto postSuccess = _eventLoop.post(
-						// 	[]()
-						// 	{
-								const auto abccHandlerStatus = APPL_HandleAbcc();
-								assert(abccHandlerStatus == APPL_MODULE_NO_ERROR);
-								static_cast<void>(abccHandlerStatus);
-
-								const int value = (12777216 - SysTickValueGet());
-								SysTickDisable();
-								sum += value;
-								if(value < min)
-									min = value;
-								if(value > max)
-									max = value;
-								if(value < totmin)
-									totmin = value;
-								if(value > totmax)
-									totmax = value;
-								if(++cnt == 100)
-								{
-									UARTprintf("%d %d %d %d %d\n",
-										sum / 100, min, max, totmin, totmax);
-									sum = 0;
-									max = 0;
-									min = 12777216;
-									cnt = 0;
-								}
-							});
-					// 	assert(postSuccess);
-					// 	static_cast<void>(postSuccess);
-					// });
-			}
-			else
-			{
-				// EncoderMgr is not active, so directly update write process data
-				ABCC_TriggerWrPdUpdate();
-			}
-		});
-	assert(postSuccess);
-	static_cast<void>(postSuccess);
 }
 
 void
@@ -376,7 +304,7 @@ EtherCAT::handleSyncISR()
 	** In this example the input capture  time is ignored and the
 	** function is called directly (InputCaptureTime = 0).
 	*/
-	captureInputsAsync();
+	captureInputs();
 }
 
 } // namespace ethercat
@@ -389,41 +317,52 @@ void ABCC_CbfSyncIsr(void)
 	instance->handleSyncISR();
 }
 
-extern volatile BOOL appl_fMsgReceivedEvent;
-extern volatile BOOL appl_fRdPdReceivedEvent;
-extern volatile BOOL appl_fTransmitMsgEvent;
-extern volatile BOOL appl_fAbccStatusEvent;
-
-void ABCC_CbfEvent( UINT16 iEvents )
+void ABCC_CbfEvent(UINT16)
 {
-   /*
-   ** Set flag to indicate that an event has occurred and the corresponding
-   ** ABCC_Trigger<event_action> must be called. In the sample code the the
-   ** trigger function is called from main loop context.
-   */
-   if( iEvents & ABCC_ISR_EVENT_RDPD )
-   {
-      appl_fRdPdReceivedEvent = TRUE;
-   }
+   	// const auto instance = app::ethercat::EtherCAT::_instance;
+	// assert(instance != nullptr);
+	// instance->handleEvent(iEvents);
+}
 
-   if( iEvents & ABCC_ISR_EVENT_RDMSG )
-   {
-      appl_fMsgReceivedEvent = TRUE;
-   }
+void ABCC_CbfUserInitReq()
+{
+	const auto moduleType = ABCC_ModuleType();
+	const auto networkType = ABCC_NetworkType();
 
-   if( iEvents & ABCC_ISR_EVENT_WRMSG )
-   {
-      appl_fTransmitMsgEvent = TRUE;
-   }
+	// Only active CompactCom B40 module and EtherCAT network supported
+	assert(moduleType == ABP_MODULE_TYPE_ABCC_40);
+	assert(networkType == ABP_NW_TYPE_ECT);
 
-   if( iEvents & ABCC_ISR_EVENT_STATUS  )
-   {
-      appl_fAbccStatusEvent = TRUE;
-   }
+	// No user init needed, so directly end this phase
+	ABCC_UserInitComplete();
+}
 
-   	const auto instance = app::ethercat::EtherCAT::_instance;
-	assert(instance != nullptr);
-	instance->handleEvent(iEvents);
+void ABCC_CbfAnbStateChanged(ABP_AnbStateType newAnbState)
+{
+	constexpr std::array<const char*, 8> stateStrings{{
+		"ABP_ANB_STATE_SETUP",
+		"ABP_ANB_STATE_NW_INIT",
+		"ABP_ANB_STATE_WAIT_PROCESS",
+		"ABP_ANB_STATE_IDLE",
+		"ABP_ANB_STATE_PROCESS_ACTIVE",
+		"ABP_ANB_STATE_ERROR",
+		"",
+		"ABP_ANB_STATE_EXCEPTION"
+	}};
+
+	assert(newAnbState < stateStrings.size());
+	UARTprintf("[EtherCAT] ABCC state changed: %s\n",
+		stateStrings[newAnbState]);
+
+	switch(newAnbState)
+	{
+	case ABP_ANB_STATE_PROCESS_ACTIVE:
+		ABCC_TriggerWrPdUpdate();
+		break;
+
+	default:
+		break;
+	}
 }
 
 UINT16 APPL_GetNumAdi(void)

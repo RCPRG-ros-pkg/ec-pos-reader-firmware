@@ -9,9 +9,12 @@
 #include "app/encoders/EncoderMgr.hpp"
 
 #include "app/ethercat/abcc_appl/appl_abcc_handler.h"
+#include "app/ethercat/abcc_abp/abp.h"
 
 extern "C" void ABCC_CbfSyncIsr();
 extern "C" void ABCC_CbfEvent(UINT16);
+extern "C" void ABCC_CbfUserInitReq();
+extern "C" void ABCC_CbfAnbStateChanged(ABP_AnbStateType);
 
 namespace app {
 namespace ethercat {
@@ -35,7 +38,22 @@ private:
 
 	using Position = encoders::EncoderMgr::Position;
 
+	enum class State
+	{
+		Idle,
+		Init,
+		WaitForComm,
+		Run,
+		Error
+	};
+
 	void setupABCCHardware();
+
+	void initialize();
+
+	void waitForCommunication();
+
+	void run();
 
 	void handleSyncISR();
 
@@ -45,13 +63,11 @@ private:
 
 	void captureInputsAsync();
 
-	APPL_AbccHandlerStatusType _abccHandlerStatus;
+	State _state = State::Idle;
 
 	common::EventLoop& _eventLoop;
 	encoders::EncoderMgr& _encoderMgr;
 
-	Position _position; //< Used in async calls
-	volatile bool _called = true;
 	static EtherCAT* _instance;
 };
 
