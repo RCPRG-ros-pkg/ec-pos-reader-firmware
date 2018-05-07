@@ -7,13 +7,13 @@ namespace encoders {
 
 struct Encoder1
 	:	public EncoderBase<
-			SSI2_BASE, INT_SSI2,
+			SSI2_BASE, SYSCTL_PERIPH_SSI2, INT_SSI2,
 			GPIO_PORTB_BASE, 2,
 			GPIO_PORTB_BASE, 3
 		>
 {
 	using EncoderBaseType = EncoderBase<
-		SSI2_BASE, INT_SSI2,
+		SSI2_BASE, SYSCTL_PERIPH_SSI2, INT_SSI2,
 		GPIO_PORTB_BASE, 2,
 		GPIO_PORTB_BASE, 3
 	>;

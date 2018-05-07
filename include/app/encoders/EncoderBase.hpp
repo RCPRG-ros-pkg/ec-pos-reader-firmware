@@ -17,14 +17,14 @@
 namespace app {
 namespace encoders {
 
-template<std::uint32_t TSSIBase, std::uint32_t TSSIInt,
+template<std::uint32_t TSSIBase, std::uint32_t TSSIId, std::uint32_t TSSIInt,
 	std::uint32_t RedLEDPinGPIOBase, std::size_t RedLEDPinNumber,
 	std::uint32_t GreenLEDPinGPIOBase, std::size_t GreenLEDPinNumber>
 class EncoderBase
 {
 public:
 	// devices typedefs
-	using SSIMasterDevice = device::SSIMaster<TSSIBase, TSSIInt>;
+	using SSIMasterDevice = device::SSIMaster<TSSIBase, TSSIId, TSSIInt>;
 	using RedLEDPin = device::OutputPin<RedLEDPinGPIOBase, RedLEDPinNumber>;
 	using GreenLEDPin = device::OutputPin<GreenLEDPinGPIOBase, GreenLEDPinNumber>;
 
