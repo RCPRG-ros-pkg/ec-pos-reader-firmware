@@ -9,8 +9,12 @@ namespace app {
 namespace common {
 
 constexpr static auto EventLoopSize = 1024U;
-using EventLoop = embxx::util::EventLoop<
-	EventLoopSize, Mutex, ConditionVariable>;
+struct EventLoop
+	:	public embxx::util::EventLoop<
+			EventLoopSize, Mutex, ConditionVariable>
+{
+
+};
 
 } // namespace common
 } // namespace app
