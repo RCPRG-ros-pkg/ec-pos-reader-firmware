@@ -1,5 +1,7 @@
 #include <cstdint>
 #include "tivaware/inc/hw_memmap.h"
+#include "tivaware/inc/hw_types.h"
+#include "tivaware/inc/hw_nvic.h"
 #include "tivaware/driverlib/sysctl.h"
 #include "tivaware/driverlib/interrupt.h"
 #include "tivaware/driverlib/gpio.h"
@@ -29,13 +31,15 @@ void preinitHardware()
 //! Postcondition: clockHz will be set to non-zero value
 void initHardware()
 {
+	// HWREG(NVIC_ACTLR) |= NVIC_ACTLR_DISWBUF;
+
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
 	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI1);
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
-	MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+	// MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
+	// MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI1);
+	// MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI2);
+	// MAP_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
 
 	// Configure GPIO of pins of SSI0 module. Pull-up SSI0CLK pin
 	MAP_GPIOPinConfigure(GPIO_PA2_SSI0CLK);
