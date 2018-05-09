@@ -17,7 +17,7 @@
 
 //! Configure SPI message fragment length.
 //! Most of small messages are under 32 octets
-#define ABCC_CFG_SPI_MSG_FRAG_LEN                  (16)
+#define ABCC_CFG_SPI_MSG_FRAG_LEN                  (32)
 
 //! Enable module ID checking from MI0 and MI1 pins
 #define ABCC_CFG_MODULE_ID_PINS_CONN               (FALSE)
@@ -38,7 +38,8 @@
 //! Enable interrupts from IRQ pin
 #define ABCC_CFG_POLL_ABCC_IRQ_PIN                 (FALSE)
 #define ABCC_CFG_INT_ENABLED                       (TRUE)
-#define ABCC_CFG_INT_ENABLE_MASK_SPI (ABP_INTMASK_RDPDIEN | ABP_INTMASK_RDMSGIEN | ABP_INTMASK_WRMSGIEN | ABP_INTMASK_ANBRIEN | ABP_INTMASK_STATUSIEN)
+#define ABCC_CFG_INT_ENABLE_MASK_SPI (0)
+// #define ABCC_CFG_INT_ENABLE_MASK_SPI (ABP_INTMASK_RDPDIEN | ABP_INTMASK_RDMSGIEN | ABP_INTMASK_WRMSGIEN | ABP_INTMASK_ANBRIEN | ABP_INTMASK_STATUSIEN)
 
 //! Configure anybus watchdog to be called every 1 second
 #define ABCC_CFG_WD_TIMEOUT_MS                     (1000)
@@ -47,8 +48,8 @@
 #define ABCC_CFG_REMAP_SUPPORT_ENABLED             (FALSE)
 
 //! Configuration of ADI
-#define ABCC_CFG_STRUCT_DATA_TYPE                  (FALSE)
-#define ABCC_CFG_ADI_GET_SET_CALLBACK              (FALSE)
+#define ABCC_CFG_STRUCT_DATA_TYPE                  (TRUE)
+#define ABCC_CFG_ADI_GET_SET_CALLBACK              (TRUE)
 #define ABCC_CFG_64BIT_ADI_SUPPORT                 (FALSE)
 
 //! Command sequencer configuration

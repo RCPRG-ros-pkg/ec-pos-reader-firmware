@@ -6,7 +6,8 @@
 #include "embxx/error/ErrorCode.h"
 
 #include "app/ethercat/Status.hpp"
-#include "app/encoders/EncoderMgr.hpp"
+#include "app/encoders/Encoder0.hpp"
+#include "app/encoders/Encoder1.hpp"
 
 #include "app/ethercat/abcc_appl/appl_abcc_handler.h"
 #include "app/ethercat/abcc_abp/abp.h"
@@ -15,6 +16,8 @@ extern "C" void ABCC_CbfSyncIsr();
 extern "C" void ABCC_CbfEvent(UINT16);
 extern "C" void ABCC_CbfUserInitReq();
 extern "C" void ABCC_CbfAnbStateChanged(ABP_AnbStateType);
+extern "C" void setEncoder0Settings(const struct AD_AdiEntry* /*psAdiEntry*/,
+	UINT8 /*bNumElements*/, UINT8 /*bStartIndex*/);
 
 namespace app {
 namespace ethercat {
@@ -26,7 +29,8 @@ public:
 	using ErrorCode = embxx::error::ErrorCode;
 
 	EtherCAT(common::EventLoop& eventLoop,
-		encoders::EncoderMgr& encoderMgr);
+		encoders::Encoder0& encoder0,
+		encoders::Encoder1& encoder1);
 
 	~EtherCAT();
 
@@ -35,13 +39,14 @@ public:
 private:
 	friend void ::ABCC_CbfSyncIsr();
 	friend void ::ABCC_CbfEvent(UINT16);
-
-	using Position = encoders::EncoderMgr::Position;
+	friend void ::ABCC_CbfUserInitReq();
+	friend void ::ABCC_CbfAnbStateChanged(ABP_AnbStateType);
+	friend void ::setEncoder0Settings(const struct AD_AdiEntry *, UINT8, UINT8);
 
 	enum class State
 	{
 		Idle,
-		Init,
+		DriverInit,
 		WaitForComm,
 		Run,
 		Error
@@ -49,7 +54,7 @@ private:
 
 	void setupABCCHardware();
 
-	void initialize();
+	void initDriver();
 
 	void waitForCommunication();
 
@@ -57,16 +62,16 @@ private:
 
 	void handleSyncISR();
 
-	void handleEvent(std::uint16_t event);
-
 	void captureInputs();
 
 	void captureInputsAsync();
 
 	State _state = State::Idle;
+	ABP_AnbStateType _anbState = ABP_ANB_STATE_SETUP;
 
 	common::EventLoop& _eventLoop;
-	encoders::EncoderMgr& _encoderMgr;
+	encoders::Encoder0& _encoder0;
+	encoders::Encoder1& _encoder1;
 
 	static EtherCAT* _instance;
 };
