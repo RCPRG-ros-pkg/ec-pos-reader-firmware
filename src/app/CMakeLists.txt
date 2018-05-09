@@ -8,6 +8,9 @@ add_library(app
 
 target_link_libraries(app
 	app_blinker
-	app_encoders
+	# app_encoders
 	app_ethercat
+
+	etl
+	device
 )
