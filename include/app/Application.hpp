@@ -3,7 +3,8 @@
 #include "app/common/EventLoop.hpp"
 
 #include "app/blinker/Blinker.hpp"
-#include "app/encoders/EncoderMgr.hpp"
+#include "app/encoders/Encoder0.hpp"
+#include "app/encoders/Encoder1.hpp"
 #include "app/ethercat/EtherCAT.hpp"
 
 #include "embxx/error/ErrorStatus.h"
@@ -37,7 +38,8 @@ private:
 
 	// modules
 	blinker::Blinker _blinker;
-	encoders::EncoderMgr _encoderMgr;
+	encoders::Encoder0 _encoder0;
+	encoders::Encoder1 _encoder1;
 	ethercat::EtherCAT _etherCAT;
 };
 

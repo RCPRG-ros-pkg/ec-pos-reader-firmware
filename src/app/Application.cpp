@@ -11,8 +11,9 @@ namespace app {
  */
 Application::Application()
 	:	_blinker(_eventLoop)
-		,_encoderMgr(_eventLoop)
-		,_etherCAT(_eventLoop, _encoderMgr)
+		,_encoder0(_eventLoop)
+		,_encoder1(_eventLoop)
+		,_etherCAT(_eventLoop, _encoder0, _encoder1)
 {
 	UARTprintf("[Application] initialized\n");
 
