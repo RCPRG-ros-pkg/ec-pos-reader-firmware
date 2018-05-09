@@ -181,17 +181,35 @@ public:
 	}
 
 	/**
-	 * @brief Reads one data item from SSI slave in blocking way in interrupt context.
+	 * @brief Reads one data item from SSI slave in blocking way in event loop context.
 	 * @details [long description]
 	 *
 	 * @param data [description]
 	 * @param ec [description]
 	 */
 	void
-	readOne(DataType& destData, ErrorCode& ec)
+	readOne(DataType& destData, ErrorCode& ec, EventLoopCtx)
 	{
 		// Lock interrupts and check, that device should not be busy
 		assert(!isBusy(EventLoopCtx()));
+
+		// Read one as in the interrupt context
+		readOne(destData, ec, InterruptCtx());
+	}
+
+	/**
+	 * @brief Reads one data item from SSI slave in blocking way in interrupt context.
+	 * @details [long description]
+	 *
+	 * @param destData [description]
+	 * @param ec [description]
+	 * @param x [description]
+	 */
+	void
+	readOne(DataType& destData, ErrorCode& ec, InterruptCtx)
+	{
+		// Device should not be busy
+		assert(!isBusy(InterruptCtx()));
 
 		// Both queues should be empty, so insert one dummy data item to Tx FIFO
 		assert(SSIRxEmpty(BaseAddress));

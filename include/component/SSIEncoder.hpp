@@ -84,7 +84,7 @@ public:
 		assert(!isBusy());
 
 		// Read one data item from the device. Blocking call
-		_ssiMasterDevice.readOne(_data, errorCode);
+		_ssiMasterDevice.readOne(_data, errorCode, EventLoopCtx());
 		if(embxx::error::ErrorStatus(errorCode))
 		{
 			// Error occured during read operation
