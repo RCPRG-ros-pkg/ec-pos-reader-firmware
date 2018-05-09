@@ -73,12 +73,6 @@
 appl_AbccHandlerStateType appl_eAbccHandlerState = APPL_INIT;
 
 /*------------------------------------------------------------------------------
-** Current anybus state
-**------------------------------------------------------------------------------
-*/
-static volatile ABP_AnbStateType appl_eAnbState = ABP_ANB_STATE_SETUP;
-
-/*------------------------------------------------------------------------------
 ** Set to TRUE when an unexpected error occur. The main state machine will
 ** return APPL_MODULE_UNEXPECTED_ERROR when this flag is set.
 **------------------------------------------------------------------------------

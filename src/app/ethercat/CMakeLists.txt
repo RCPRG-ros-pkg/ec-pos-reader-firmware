@@ -9,7 +9,7 @@ add_library(app_ethercat
 
 target_link_libraries(app_ethercat
 	abcc_adapt
-	abcc_appl
 	abcc_drv
+	abcc_appl
 	abcc_obj
 )

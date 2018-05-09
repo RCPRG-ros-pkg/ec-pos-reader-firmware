@@ -19,34 +19,60 @@ extern "C" {
 
 } // extern "C"
 
-#if(!SYNC_OBJ_ENABLE)
-   #error SYNC_OBJ_ENABLE must be set to TRUE in abcc_obj_cfg.h.h
-#endif
-
-#if(!ABCC_CFG_SYNC_ENABLE)
-   #error ABCC_CFG_SYNC_ENABLE in abcc_drv_cfg.h must be enabled
-#endif
-
 /*------------------------------------------------------------------------------
 ** Access descriptor for the ADIs
 **------------------------------------------------------------------------------
 */
 #define APPL_WRITE_MAP_READ_ACCESS_DESC (ABP_APPD_DESCR_GET_ACCESS |          \
                                           ABP_APPD_DESCR_MAPPABLE_WRITE_PD)
+struct EncoderInputs
+{
+	BOOL frameError;
+	UINT32 position;
+};
 
-/*
-** Represent the sampled inputs at the sync pulse. The variable is
-** linked to the ADI entry table.
-*/
-static UINT32 _encoder0Position;
+// struct EncoderSettings
+// {
+// 	UINT8 resolution;
+// 	UINT32 bitRate;
+// };
 
-/*------------------------------------------------------------------------------
-**  32 bit input/output.
-**------------------------------------------------------------------------------
-*/
+EncoderInputs encoder0Inputs;
+EncoderInputs encoder1Inputs;
+
+// EncoderSettings encoder0Settings;
+// EncoderSettings encoder1Settings;
+
+static const AD_StructDataType encoder0InputsADIStruct[] =
+{
+	{ (char*)"Frame error", ABP_BOOL, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, 0, { { &encoder0Inputs.frameError, NULL } } },
+	{ (char*)"Position", ABP_UINT32, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, 0, { { &encoder0Inputs.position, NULL } } }
+};
+
+static const AD_StructDataType encoder1InputsADIStruct[] =
+{
+	{ (char*)"Frame error", ABP_BOOL, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, 0, { { &encoder1Inputs.frameError, NULL } } },
+	{ (char*)"Position", ABP_UINT32, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, 0, { { &encoder1Inputs.position, NULL } } }
+};
+
+// static const AD_StructDataType encoder0SettingsADIStruct[] =
+// {
+// 	{ (char*)"Resolution", ABP_UINT8, 1, ABP_APPD_DESCR_SET_ACCESS | ABP_APPD_DESCR_GET_ACCESS, 0, { { &encoder0Settings.resolution, NULL } } },
+// 	{ (char*)"Bit rate", ABP_UINT32, 1, ABP_APPD_DESCR_SET_ACCESS | ABP_APPD_DESCR_GET_ACCESS, 0, { { &encoder0Settings.bitRate, NULL } } }
+// };
+
+// static const AD_StructDataType encoder1SettingsADIStruct[] =
+// {
+// 	{ (char*)"Resolution", ABP_UINT8, 1, ABP_APPD_DESCR_SET_ACCESS | ABP_APPD_DESCR_GET_ACCESS, 0, { { &encoder1Settings.resolution, NULL } } },
+// 	{ (char*)"Bit rate", ABP_UINT32, 1, ABP_APPD_DESCR_SET_ACCESS | ABP_APPD_DESCR_GET_ACCESS, 0, { { &encoder1Settings.bitRate, NULL } } }
+// };
+
 const AD_AdiEntryType APPL_asAdiEntryList[] =
 {
-	{ 1, (char*)"encoder0Position", ABP_UINT32, 1, APPL_WRITE_MAP_READ_ACCESS_DESC, { { &_encoder0Position, NULL } } }
+	{ 1, (char*)"Encoder0 Inputs", ABP_UINT8, 2, APPL_WRITE_MAP_READ_ACCESS_DESC,  { { NULL, NULL } }, encoder0InputsADIStruct, NULL, NULL },
+	{ 2, (char*)"Encoder1 Inputs", ABP_UINT8, 2, APPL_WRITE_MAP_READ_ACCESS_DESC,  { { NULL, NULL } }, encoder1InputsADIStruct, NULL, NULL }
+	// { 3, (char*)"Encoder0 Settings", ABP_UINT8, 2, ABP_APPD_DESCR_SET_ACCESS | ABP_APPD_DESCR_GET_ACCESS,  { { NULL, NULL } }, encoder0SettingsADIStruct, NULL, setEncoder0Settings },
+	// { 4, (char*)"Encoder1 Settings", ABP_UINT8, 2, ABP_APPD_DESCR_SET_ACCESS | ABP_APPD_DESCR_GET_ACCESS,  { { NULL, NULL } }, encoder1SettingsADIStruct, NULL, NULL }
 };
 
 /*------------------------------------------------------------------------------
@@ -57,7 +83,10 @@ const AD_AdiEntryType APPL_asAdiEntryList[] =
 */
 const AD_DefaultMapType APPL_asAdObjDefaultMap[] =
 {
-	{ 1, PD_WRITE, AD_DEFAULT_MAP_ALL_ELEM, 0 },
+	{ 1, PD_WRITE, 1, 0 },
+	{ 1, PD_WRITE, 1, 1 },
+	{ 2, PD_WRITE, 1, 0 },
+	{ 2, PD_WRITE, 1, 1 },
 	{ AD_DEFAULT_MAP_END_ENTRY }
 };
 
@@ -67,9 +96,11 @@ namespace ethercat {
 EtherCAT* EtherCAT::_instance = nullptr;
 
 EtherCAT::EtherCAT(common::EventLoop& eventLoop,
-	encoders::EncoderMgr& encoderMgr)
+	encoders::Encoder0& encoder0,
+	encoders::Encoder1& encoder1)
 	:	_eventLoop(eventLoop),
-		_encoderMgr(encoderMgr)
+		_encoder0(encoder0),
+		_encoder1(encoder1)
 {
 	setupABCCHardware();
 	_instance = this;
@@ -107,18 +138,18 @@ EtherCAT::start()
 	assert(_state == State::Idle);
 	UARTprintf("[EtherCAT] starting...\n");
 
-	initialize();
+	initDriver();
 
 	UARTprintf("[EtherCAT] started\n");
 }
 
 void
-EtherCAT::initialize()
+EtherCAT::initDriver()
 {
 	assert(_state == State::Idle);
-	UARTprintf("[EtherCAT] initializing...\n");
+	UARTprintf("[EtherCAT] initializing driver...\n");
 
-	_state = State::Init;
+	_state = State::DriverInit;
 
 	if(!ABCC_ModuleDetect())
 	{
@@ -155,11 +186,12 @@ EtherCAT::initialize()
 void
 EtherCAT::waitForCommunication()
 {
-	assert(_state == State::Init);
+	assert(_state == State::DriverInit);
 
 	_state = State::WaitForComm;
 
 	// Execute busy wait, to cyclically check the communication status
+	//  in order to detect moment, when ABCC is ready
 	_eventLoop.busyWait(
 		[this]()
 		{
@@ -198,25 +230,21 @@ EtherCAT::run()
 
 	_state = State::Run;
 
+	// Cyclically poll ABCC driver
 	_eventLoop.busyWait(
 		[this]()
 		{
-			if(_state != State::Run)
-			{
-				// Module is no longer active, end busy wait
-				return true;
-			}
-
 			// Module is active, keep communication with ABCC
-			if(SYNC_GetMode() == SYNC_MODE_NONSYNCHRONOUS)
+			if(const auto errorCode = ABCC_RunDriver();
+				errorCode != ABCC_EC_NO_ERROR)
 			{
-				ABCC_TriggerWrPdUpdate();
+				UARTprintf("[EtherCAT] driver error during run, ec=%d\n",
+					errorCode);
+				_state = State::Error;
 			}
 
-			ABCC_RunDriver();
-
-			return false; // Don't end the busy wait
-
+			const auto endWait = (_state != State::Run);
+			return endWait;
 		},
 		[]()
 		{
@@ -229,22 +257,32 @@ EtherCAT::run()
 void
 EtherCAT::captureInputs()
 {
-	if(_encoderMgr.isActive())
+	encoders::Encoder0::Position position = 0;
+	ErrorCode ec;
+	_encoder0.captureInputs(position, ec);
+	if(embxx::error::ErrorStatus(ec))
 	{
-		Position position;
-		ErrorCode ec;
-		_encoderMgr.captureInputs(position, ec);
-		if(embxx::error::ErrorStatus(ec))
-		{
-			// error occured during read operation
-			UARTprintf("[EtherCAT] could not capture inputs, ec=%d\n",
-				static_cast<int>(ec));
-			APPL_UnexpectedError();
-			return;
-		}
-
+		encoder0Inputs.frameError = true;
+	}
+	else
+	{
 		// inputs capture success
-		_encoder0Position = position;
+		encoder0Inputs.position = position;
+		encoder0Inputs.frameError = false;
+	}
+
+	encoders::Encoder1::Position position1 = 0;
+	ErrorCode ec1;
+	_encoder1.captureInputs(position1, ec1);
+	if(embxx::error::ErrorStatus(ec1))
+	{
+		encoder1Inputs.frameError = true;
+	}
+	else
+	{
+		// inputs capture success
+		encoder1Inputs.position = position1;
+		encoder1Inputs.frameError = false;
 	}
 
 	/*
@@ -252,7 +290,6 @@ EtherCAT::captureInputs()
 	** this function.
 	*/
 	ABCC_TriggerWrPdUpdate();
-
 }
 
 void
@@ -319,9 +356,7 @@ void ABCC_CbfSyncIsr(void)
 
 void ABCC_CbfEvent(UINT16)
 {
-   	// const auto instance = app::ethercat::EtherCAT::_instance;
-	// assert(instance != nullptr);
-	// instance->handleEvent(iEvents);
+	/* do nothing */
 }
 
 void ABCC_CbfUserInitReq()
@@ -329,7 +364,7 @@ void ABCC_CbfUserInitReq()
 	const auto moduleType = ABCC_ModuleType();
 	const auto networkType = ABCC_NetworkType();
 
-	// Only active CompactCom B40 module and EtherCAT network supported
+	// Only ABCC B40 EtherCAT chip supported
 	assert(moduleType == ABP_MODULE_TYPE_ABCC_40);
 	assert(networkType == ABP_NW_TYPE_ECT);
 
@@ -340,14 +375,14 @@ void ABCC_CbfUserInitReq()
 void ABCC_CbfAnbStateChanged(ABP_AnbStateType newAnbState)
 {
 	constexpr std::array<const char*, 8> stateStrings{{
-		"ABP_ANB_STATE_SETUP",
-		"ABP_ANB_STATE_NW_INIT",
-		"ABP_ANB_STATE_WAIT_PROCESS",
-		"ABP_ANB_STATE_IDLE",
-		"ABP_ANB_STATE_PROCESS_ACTIVE",
-		"ABP_ANB_STATE_ERROR",
+		"SETUP",
+		"NW_INIT",
+		"WAIT_PROCESS",
+		"IDLE",
+		"PROCESS_ACTIVE",
+		"ERROR",
 		"",
-		"ABP_ANB_STATE_EXCEPTION"
+		"EXCEPTION"
 	}};
 
 	assert(newAnbState < stateStrings.size());
@@ -356,6 +391,9 @@ void ABCC_CbfAnbStateChanged(ABP_AnbStateType newAnbState)
 
 	switch(newAnbState)
 	{
+	case ABP_ANB_STATE_SETUP:
+		break;
+
 	case ABP_ANB_STATE_PROCESS_ACTIVE:
 		ABCC_TriggerWrPdUpdate();
 		break;
