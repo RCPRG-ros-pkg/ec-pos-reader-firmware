@@ -135,7 +135,9 @@ void ABCC_CbfDriverError(ABCC_SeverityType eSeverity, ABCC_ErrorCodeType iErrorC
 
 void ABCC_CbfReceiveMsg(ABP_MsgType* psReceivedMsg)
 {
-   switch( ABCC_GetMsgDestObj(psReceivedMsg))
+   ABCC_PORT_DebugPrint(("Message: %d\n",  ABCC_GetMsgDestObj(psReceivedMsg)));
+
+   switch(ABCC_GetMsgDestObj(psReceivedMsg))
    {
    case ABP_OBJ_NUM_ECT:
       ECT_ProcessCmdMsg(psReceivedMsg);

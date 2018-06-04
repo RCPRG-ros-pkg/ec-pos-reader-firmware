@@ -85,7 +85,7 @@ private:
 			embxx::util::StaticFunction<void(ErrorCode), 1 * sizeof(void*)>>;
 
 	// Default SSI settings for encoders.
-	constexpr static auto DefaultBitRate = 1500000;
+	constexpr static auto DefaultBitRate = 1250000;
 	constexpr static auto DefaultFrameWidth = 13;
 	constexpr static auto DefaultResolution = 13;
 

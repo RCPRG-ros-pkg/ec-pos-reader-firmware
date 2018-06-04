@@ -46,6 +46,12 @@ void initHardware()
 	MAP_GPIOPinConfigure(GPIO_PA4_SSI0RX);
 	MAP_GPIOPinTypeSSI(GPIO_PORTA_BASE,
 		GPIO_PIN_2 | GPIO_PIN_4);
+
+	// Configure GPIO of pins of SSI2 module. Pull-up SSI2CLK pin
+	MAP_GPIOPinConfigure(GPIO_PB4_SSI2CLK);
+	MAP_GPIOPinConfigure(GPIO_PB6_SSI2RX);
+	MAP_GPIOPinTypeSSI(GPIO_PORTB_BASE,
+		GPIO_PIN_4 | GPIO_PIN_6);
 }
 
 //! Initializes IO UART channel

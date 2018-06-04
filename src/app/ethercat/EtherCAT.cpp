@@ -69,8 +69,8 @@ static const AD_StructDataType encoder1InputsADIStruct[] =
 
 const AD_AdiEntryType APPL_asAdiEntryList[] =
 {
-	{ 1, (char*)"Encoder0 Inputs", ABP_UINT8, 2, APPL_WRITE_MAP_READ_ACCESS_DESC,  { { NULL, NULL } }, encoder0InputsADIStruct, NULL, NULL },
-	{ 2, (char*)"Encoder1 Inputs", ABP_UINT8, 2, APPL_WRITE_MAP_READ_ACCESS_DESC,  { { NULL, NULL } }, encoder1InputsADIStruct, NULL, NULL }
+	{ 1, (char*)"Encoder0 Inputs", ABP_UINT8, 2, APPL_WRITE_MAP_READ_ACCESS_DESC,  { { NULL, NULL } }, encoder0InputsADIStruct, getEncoder0Inputs, NULL },
+	{ 2, (char*)"Encoder1 Inputs", ABP_UINT8, 2, APPL_WRITE_MAP_READ_ACCESS_DESC,  { { NULL, NULL } }, encoder1InputsADIStruct, getEncoder1Inputs, NULL }
 	// { 3, (char*)"Encoder0 Settings", ABP_UINT8, 2, ABP_APPD_DESCR_SET_ACCESS | ABP_APPD_DESCR_GET_ACCESS,  { { NULL, NULL } }, encoder0SettingsADIStruct, NULL, setEncoder0Settings },
 	// { 4, (char*)"Encoder1 Settings", ABP_UINT8, 2, ABP_APPD_DESCR_SET_ACCESS | ABP_APPD_DESCR_GET_ACCESS,  { { NULL, NULL } }, encoder1SettingsADIStruct, NULL, NULL }
 };
@@ -128,6 +128,7 @@ EtherCAT::setupABCCHardware()
 
 	const auto errorCode = ABCC_HwInit();
 	assert(errorCode == ABCC_EC_NO_ERROR);
+	static_cast<void>(errorCode);
 
 	UARTprintf("[EtherCAT] ABCC hardware setup success\n");
 }
@@ -257,6 +258,21 @@ EtherCAT::run()
 void
 EtherCAT::captureInputs()
 {
+	// captureEncoder0Inputs();
+	// captureEncoder1Inputs();
+
+	/*
+	** Always update the ABCC with the latest write process data at the end of
+	** this function.
+	*/
+	ABCC_TriggerWrPdUpdate();
+}
+
+void
+EtherCAT::captureEncoder0Inputs()
+{
+	// UARTprintf("[EtherCAT] capturing encoder0...\n");
+
 	encoders::Encoder0::Position position = 0;
 	ErrorCode ec;
 	_encoder0.captureInputs(position, ec);
@@ -271,25 +287,29 @@ EtherCAT::captureInputs()
 		encoder0Inputs.frameError = false;
 	}
 
-	encoders::Encoder1::Position position1 = 0;
-	ErrorCode ec1;
-	_encoder1.captureInputs(position1, ec1);
-	if(embxx::error::ErrorStatus(ec1))
+	// UARTprintf("[EtherCAT] captured encoder0\n");
+}
+
+void
+EtherCAT::captureEncoder1Inputs()
+{
+	// UARTprintf("[EtherCAT] capturing encoder1...\n");
+
+	encoders::Encoder1::Position position = 0;
+	ErrorCode ec;
+	_encoder1.captureInputs(position, ec);
+	if(embxx::error::ErrorStatus(ec))
 	{
 		encoder1Inputs.frameError = true;
 	}
 	else
 	{
 		// inputs capture success
-		encoder1Inputs.position = position1;
+		encoder1Inputs.position = position;
 		encoder1Inputs.frameError = false;
 	}
 
-	/*
-	** Always update the ABCC with the latest write process data at the end of
-	** this function.
-	*/
-	ABCC_TriggerWrPdUpdate();
+	// UARTprintf("[EtherCAT] captured encoder1\n");
 }
 
 void
@@ -347,19 +367,22 @@ EtherCAT::handleSyncISR()
 } // namespace ethercat
 } // namespace app
 
-void ABCC_CbfSyncIsr(void)
+void
+ABCC_CbfSyncIsr(void)
 {
 	const auto instance = app::ethercat::EtherCAT::_instance;
 	assert(instance != nullptr);
 	instance->handleSyncISR();
 }
 
-void ABCC_CbfEvent(UINT16)
+void
+ABCC_CbfEvent(UINT16)
 {
 	/* do nothing */
 }
 
-void ABCC_CbfUserInitReq()
+void
+ABCC_CbfUserInitReq()
 {
 	const auto moduleType = ABCC_ModuleType();
 	const auto networkType = ABCC_NetworkType();
@@ -367,12 +390,15 @@ void ABCC_CbfUserInitReq()
 	// Only ABCC B40 EtherCAT chip supported
 	assert(moduleType == ABP_MODULE_TYPE_ABCC_40);
 	assert(networkType == ABP_NW_TYPE_ECT);
+	static_cast<void>(moduleType);
+	static_cast<void>(networkType);
 
 	// No user init needed, so directly end this phase
 	ABCC_UserInitComplete();
 }
 
-void ABCC_CbfAnbStateChanged(ABP_AnbStateType newAnbState)
+void
+ABCC_CbfAnbStateChanged(ABP_AnbStateType newAnbState)
 {
 	constexpr std::array<const char*, 8> stateStrings{{
 		"SETUP",
@@ -403,7 +429,26 @@ void ABCC_CbfAnbStateChanged(ABP_AnbStateType newAnbState)
 	}
 }
 
-UINT16 APPL_GetNumAdi(void)
+UINT16
+APPL_GetNumAdi(void)
 {
 	return(sizeof(APPL_asAdiEntryList) / sizeof(AD_AdiEntryType));
+}
+
+void
+getEncoder0Inputs(const struct AD_AdiEntry* /*adiEntry*/,
+	UINT8 /*numElements*/, UINT8 /*startIndex*/)
+{
+	const auto instance = app::ethercat::EtherCAT::_instance;
+	assert(instance != nullptr);
+	instance->captureEncoder0Inputs();
+}
+
+void
+getEncoder1Inputs(const struct AD_AdiEntry* /*adiEntry*/,
+	UINT8 /*numElements*/, UINT8 /*startIndex*/)
+{
+	const auto instance = app::ethercat::EtherCAT::_instance;
+	assert(instance != nullptr);
+	instance->captureEncoder1Inputs();
 }

@@ -5,7 +5,6 @@
 #include "embxx/util/StaticFunction.h"
 #include "embxx/error/ErrorCode.h"
 
-#include "app/ethercat/Status.hpp"
 #include "app/encoders/Encoder0.hpp"
 #include "app/encoders/Encoder1.hpp"
 
@@ -16,8 +15,12 @@ extern "C" void ABCC_CbfSyncIsr();
 extern "C" void ABCC_CbfEvent(UINT16);
 extern "C" void ABCC_CbfUserInitReq();
 extern "C" void ABCC_CbfAnbStateChanged(ABP_AnbStateType);
-extern "C" void setEncoder0Settings(const struct AD_AdiEntry* /*psAdiEntry*/,
-	UINT8 /*bNumElements*/, UINT8 /*bStartIndex*/);
+extern "C" void setEncoder0Settings(const struct AD_AdiEntry* psAdiEntry,
+	UINT8 bNumElements, UINT8 bStartIndex);
+extern "C" void getEncoder0Inputs(const struct AD_AdiEntry* adiEntry,
+	UINT8 numElements, UINT8 startIndex);
+extern "C" void getEncoder1Inputs(const struct AD_AdiEntry* adiEntry,
+	UINT8 numElements, UINT8 startIndex);
 
 namespace app {
 namespace ethercat {
@@ -42,6 +45,8 @@ private:
 	friend void ::ABCC_CbfUserInitReq();
 	friend void ::ABCC_CbfAnbStateChanged(ABP_AnbStateType);
 	friend void ::setEncoder0Settings(const struct AD_AdiEntry *, UINT8, UINT8);
+	friend void ::getEncoder0Inputs(const struct AD_AdiEntry *, UINT8, UINT8);
+	friend void ::getEncoder1Inputs(const struct AD_AdiEntry *, UINT8, UINT8);
 
 	enum class State
 	{
@@ -63,6 +68,10 @@ private:
 	void handleSyncISR();
 
 	void captureInputs();
+
+	void captureEncoder0Inputs();
+
+	void captureEncoder1Inputs();
 
 	void captureInputsAsync();
 
